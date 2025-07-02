@@ -6,6 +6,8 @@ from hrfluentwidgets import GraphicsView,GraphicsRectItem,GraphicsItemScene,Grap
 from LabelWidget.LabelCard import LabelCard,LabelItem
 from LabelWidget.ImageCard import ImageCard
 from LabelWidget.GraphicsCard import GraphicsCard
+from HRVision.utils import GenerateTrainWatcher, GetTrainWatcherList
+from GlobalData import gData
 class LabelInterface(QWidget):
     """ Label Interface Widget """
     def __init__(self, parent=None):

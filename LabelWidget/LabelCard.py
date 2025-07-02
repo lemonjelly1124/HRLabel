@@ -45,6 +45,7 @@ class LabelCard(HeaderCardWidget):
         lblItem = LabelItem(lblID,lblName,color)
         listItem.setSizeHint(lblItem.sizeHint())
         lblItem.onColorChanged.connect(self.onLabelColorChanged)
+        lblItem.onDeleteClicked.connect(self.onDeleteBtnClicked)
 
         self.labelList.addItem(listItem)
         self.labelList.setItemWidget(listItem, lblItem)
@@ -58,6 +59,23 @@ class LabelCard(HeaderCardWidget):
         label=DO.insert_label(label)
         self.addLabelItem(label.id, label.name, QColor(label.color))
 
+    def onDeleteBtnClicked(self, lblID: int):
+        dlg= MessageBox("删除标签", "确定要删除该标签吗？\n", parent=QApplication.activeWindow())
+        if dlg.exec() != MessageBox.Accepted:
+            return
+        DO.delete_label(id=lblID)
+        for i in range(self.labelList.count()):
+            item = self.labelList.item(i)
+            if isinstance(self.labelList.itemWidget(item), LabelItem):
+                lblItem:LabelItem = self.labelList.itemWidget(item)
+                if lblItem.lblID == lblID:
+                    self.labelList.takeItem(i)
+                    break
+
+
+        InfoBar.success("删除标签", "标签已成功删除", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=QApplication.activeWindow())
+
+
     def __initConnect__(self):
         """ Initialize connections """
         self.addLabelBtn.clicked.connect(self.onAddBtnClicked)
@@ -65,6 +83,7 @@ class LabelCard(HeaderCardWidget):
 class LabelItem(QWidget):
     onNameChanged = Signal(int,str)
     onColorChanged = Signal(int,QColor)
+    onDeleteClicked=Signal(int)
 
     """ Custom QListWidgetItem for labels """
     def __init__(self,lblID:int,lblName:str,color: QColor, parent=None):
@@ -128,13 +147,7 @@ class LabelItem(QWidget):
 
     def onDeleteBtnClicked(self):
         """ 点击删除按钮 """
-        
-        dlg= MessageBox("删除标签", "确定要删除该标签吗？\n"+self.lblName.text(), parent=QApplication.activeWindow())
-        if dlg.exec() != MessageBox.Accepted:
-            return
-        DO.delete_label(id=self.lblID)
-        self.deleteLater()
-        InfoBar.success("删除标签", "标签已成功删除", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=QApplication.activeWindow())
+        self.onDeleteClicked.emit(self.lblID)
     def __initConnect__(self):
         """ Initialize connections """
         self.editBtn.clicked.connect(self.onEditBtnClicked)

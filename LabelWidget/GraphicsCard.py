@@ -61,11 +61,34 @@ class GraphicsCard(HeaderCardWidget):
 
         self.scene.setContinueEditMode(True)
         self.scene.itemFinished.connect(self.onItemFinished)
+        self.scene.itemRemoved.connect(self.onItemRemoved)
 
         self.currImgID = None  # 当前选中的图片ID
         self.datasetID = None  # 当前数据集ID
 
         self.__connect__()
+
+        # self.scene.setImage(QImage("D:\\AIProgram\\dataset\\熔接痕\\images\\00-00-02-022_0.jpg"))
+        # polygonStr="0.396952 0.380509 0.423262 0.416685 0.466016 0.428744 0.485749 0.463824 0.52631 0.518636 0.53508 0.539465 0.584411 0.581123 0.618395 0.608529 0.604144 0.619491 0.576738 0.601951 0.550428 0.573449 0.520829 0.538369 0.496711 0.506578 0.469305 0.471497 0.455054 0.450669 0.452861 0.444091 0.424359 0.434225 0.395856 0.4123 0.381605 0.395856"
+        # polygonPoints=[]
+        # for i in range(0,len(polygonStr.split()),2):
+        #     point=QPointF(float(polygonStr.split()[i]),float(polygonStr.split()[i+1]))
+        #     polygonPoints.append(QPointF(point.x()*640,point.y()*640))
+        # self.scene.addItem(GraphicsPolygonItem(polygonPoints))
+
+        # self.scene.setImage(QImage("D:\\AIProgram\\dataset\\项目1_split\\images\\1_1.jpg"))
+        # rectStr="0.5 0.5 0.161868 0.167976"
+        # rectParts=rectStr.split()
+        # center=QPointF(float(rectParts[0])*640,float(rectParts[1])*640)
+        # rect=QRectF(center.x()-float(rectParts[2])*640/2,center.y()-float(rectParts[3])*640/2,float(rectParts[2])*640,float(rectParts[3])*640)
+        # self.scene.addItem(GraphicsRectItem(rect))
+
+        # self.scene.setImage(QImage("D:\\AIProgram\\dataset\\模穴001\\images\\19-14-37-3737.bmp"))
+        # rectStr="0.265738 0.192293 0.038133 0.017093"
+        # rectParts=rectStr.split()
+        # center=QPointF(float(rectParts[0])*2448,float(rectParts[1])*2048)
+        # rect=QRectF(center.x()-float(rectParts[2])*2448/2,center.y()-float(rectParts[3])*2048/2,float(rectParts[2])*2448,float(rectParts[3])*2048)
+        # self.scene.addItem(GraphicsRectItem(rect))
     
     def __connect__(self):
         self.zoomInBtn.clicked.connect(self.zoomIn)
@@ -76,13 +99,15 @@ class GraphicsCard(HeaderCardWidget):
         self.saveBtn.clicked.connect(self.saveImageLabel)
         self.deleteBtn.clicked.connect(self.deleteCurrImage)
 
-        
+    def onItemRemoved(self, item: QGraphicsItem):
+        self.scene.tempItem=None
+
     def onItemFinished(self,item):
-        if isinstance(item, LabelPolygonItem):
-            print("多边形区域：", item.polygon())
-        elif isinstance(item, LabelRectItem):
-            print("矩形区域：", item.rect())
-        item.isContinueEdit.connect(self.scene.setEditMode)
+        # if isinstance(item, LabelPolygonItem):
+        #     print("多边形区域：", item.polygon())
+        # elif isinstance(item, LabelRectItem):
+        #     print("矩形区域：", item.rect())
+        item.isContinueEdit.connect(self.onItemHoverLeave)
         item.datasetID = self.datasetID  # 设置数据集ID以获取标签列表
         menu=LabelMenu(dataset_id=self.datasetID)
         menu.move(QCursor.pos())
@@ -90,18 +115,22 @@ class GraphicsCard(HeaderCardWidget):
         menu.onLabelItemClicked.connect(item.setLabel)
 
     def onRectBtnClicked(self):
-        # self.graphicsview.fitInView(self.scene.imageItem(), Qt.KeepAspectRatio) 
         if not self.moveBtn.isChecked():
             self.scene.setEditMode(self.addRectBtn.isChecked())
         self.scene.addItemFunc = lambda: LabelRectItem()
         self.addPolygonBtn.setChecked(False)
 
     def onPolygonBtnClicked(self):
-        # self.graphicsview.fitInView(self.scene.imageItem(), Qt.KeepAspectRatio)
         if not self.moveBtn.isChecked():
             self.scene.setEditMode(self.addPolygonBtn.isChecked())
         self.scene.addItemFunc = lambda: LabelPolygonItem()
         self.addRectBtn.setChecked(False)
+
+    def onItemHoverLeave(self,isEdit:bool):
+        if (self.addRectBtn.isChecked() or self.addPolygonBtn.isChecked()) and isEdit:
+            self.scene.setEditMode(True)
+        else:
+            self.scene.setEditMode(False)
 
     def setDataset(self, datasetID: int):
         """ 设置当前数据集ID """
@@ -120,6 +149,7 @@ class GraphicsCard(HeaderCardWidget):
         image = images[0]
 
         if not os.path.exists(image.path):
+            print(f"图像路径不存在: {image.path}")
             self.scene.setImage(QImage())
             InfoBar.error("加载图像失败", f"图像路径不存在: {image.path}", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
             return
@@ -131,6 +161,7 @@ class GraphicsCard(HeaderCardWidget):
         if image.labels is not None or image.labels == "[]":
             itemArr=ast.literal_eval(image.labels)
             self.setItemsArr(itemArr)
+        self.enableImageDrag()
 
     def onLabelColorChanged(self, lblID: int, newColor: QColor):
         print(f"处理标签颜色变化: 标签ID={lblID}, 新颜色={newColor.name()}")
@@ -143,10 +174,12 @@ class GraphicsCard(HeaderCardWidget):
         itemArrStr= str(itemArr)  # 转换为字符串格式
         affected_rows=DO.update_image(self.currImgID,labels=itemArrStr)
         if affected_rows > 0:
-            InfoBar.success("保存成功", "图像标注已保存", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
+            InfoBar.success("保存成功", "图像标注已保存", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self.window())
             self.onSaveImageLabel.emit(self.currImgID)
 
     def getItemsArr(self)->list:
+        size=self.scene.image().size()
+
         itemArr= []
         for item in self.scene.items():
             if isinstance(item, (LabelRectItem)):
@@ -160,6 +193,8 @@ class GraphicsCard(HeaderCardWidget):
                 }
                 itemArr.append(itemData)
             elif isinstance(item, (LabelPolygonItem)):
+                if item.polygon().size()<3:
+                    continue
                 polygon = item.mapToScene(item.polygon())  # 确保多边形坐标是场景坐标
                 polygonStr = ",".join([f"{point.x()},{point.y()}" for point in polygon])
                 labelID=item.LabelID if item.LabelID is not None else -1
@@ -179,6 +214,8 @@ class GraphicsCard(HeaderCardWidget):
                 rect = QRectF(float(rectParts[0]), float(rectParts[1]), float(rectParts[2]), float(rectParts[3]))
                 rectItem = LabelRectItem()
                 rectItem.setRect(rect)
+                rectItem.state=2
+                rectItem.datasetID = self.datasetID  # 设置数据集ID以获取标签列表
 
                 labelID = itemData.get("label_id", None)
                 # labelColorStr= "#00FF00"  # 默认颜色为绿色
@@ -188,14 +225,21 @@ class GraphicsCard(HeaderCardWidget):
                     labelColor= QColor(label[0].color)
                     rectItem.setLabel(labelID, labelColor)
                 self.scene.addItem(rectItem)
+                rectItem.isContinueEdit.connect(self.onItemHoverLeave)
             elif itemData["type"] == "LabelPolygonItem":
                 polygonParts = itemData["polygon"].split(",")
                 polygon = [QPointF(float(polygonParts[i]), float(polygonParts[i + 1])) for i in range(0, len(polygonParts), 2)]
                 labelID = itemData.get("label_id", None)
                 polygonItem = LabelPolygonItem()
+                polygonItem.state=2
                 polygonItem.setPolygon(polygon)
-                polygonItem.setLabel(labelID, QColor(Qt.GlobalColor.green))
+                polygonItem.datasetID = self.datasetID  # 设置数据集ID以获取标签列表
 
+                label:list[LabelData]=DO.query_label(id=labelID)
+                if label:
+                    labelColor= QColor(label[0].color)
+                    polygonItem.setLabel(labelID, labelColor)
+                polygonItem.isContinueEdit.connect(self.onItemHoverLeave)
                 self.scene.addItem(polygonItem)
             else:
                 continue
@@ -236,14 +280,9 @@ class GraphicsCard(HeaderCardWidget):
         affected_row=DO.delete_image(id=self.currImgID)
         if( affected_row > 0):
             InfoBar.success("删除成功", "图像已删除", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
-            # self.onNextImage.emit(self.currImgID)
+            # self.scene.setImage(None)
             self.onDeleteImage.emit(deleteID)
-            # def delayed_emit():
-            #     time.sleep(1)  # 延迟1秒发送信号
-            #     self.onDeleteImage.emit(deleteID)
 
-            # thread = threading.Thread(target=delayed_emit)
-            # thread.start()
         
     def keyPressEvent(self, event):
         """ 处理键盘按键事件 """
@@ -251,7 +290,7 @@ class GraphicsCard(HeaderCardWidget):
             if self.currImgID is None:
                 InfoBar.warning("操作失败", "请选择一张图片", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
             else:
-                self.saveImageLabel()
+                # self.saveImageLabel()
                 self.onPrevImage.emit(self.currImgID)
         elif event.key() == Qt.Key_S:
             if self.currImgID is None:
@@ -262,11 +301,25 @@ class GraphicsCard(HeaderCardWidget):
             if self.currImgID is None:
                 InfoBar.warning("操作失败", "请选择一张图片", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
             else:
-                self.saveImageLabel()
+                # self.saveImageLabel()
                 self.onNextImage.emit(self.currImgID)
+        elif event.key() == Qt.Key_T:
+            print(self.scene.isEdit)
+            items=self.scene.items()
+            for item in items:
+                if isinstance(item, (LabelPolygonItem)):
+                    print("多边形区域：", item.polygon().size())
         elif event.key() == Qt.Key_Control:
-            self.moveBtn.setChecked(self.moveBtn.isChecked() ^ True)  # 切换移动按钮状态
-            self.enableImageDrag()
+            isEditing=False
+            selectItems=self.scene.selectedItems()
+            for selItem in selectItems:
+                if isinstance(selItem, (LabelRectItem, LabelPolygonItem)):
+                    if selItem.state==1:
+                        isEditing=True
+                        break
+            if not isEditing:          
+                self.moveBtn.setChecked(self.moveBtn.isChecked() ^ True)  # 切换移动按钮状态
+                self.enableImageDrag()
         else:
             super().keyPressEvent(event)
 
@@ -283,12 +336,14 @@ class LabelRectItem(GraphicsRectItem):
         self.datasetID=None  # 数据集ID，用于获取标签列表
     
     def mousePressEvent(self, event):
+        flags:QGraphicsItem.GraphicsItemFlag=self.flags()
+
         if event.button() == Qt.MouseButton.RightButton:
             menu=LabelMenu(dataset_id=self.datasetID)
             menu.move(event.screenPos())
             menu.show()
             menu.onLabelItemClicked.connect(self.setLabel)
-        else:
+        elif flags & QGraphicsItem.GraphicsItemFlag.ItemIsSelectable:
             super().mousePressEvent(event)
     """进入时禁用scene编辑"""
     def hoverEnterEvent(self, event):
@@ -312,14 +367,16 @@ class LabelPolygonItem(GraphicsPolygonItem):
         super().__init__(parent)
         self.LabelID=None
         self.datasetID=None  # 数据集ID，用于获取标签列表
+        self.handleSize=QPointF(6, 6)
     
     def mousePressEvent(self, event):
+        flags:QGraphicsItem.GraphicsItemFlag=self.flags()
         if event.button() == Qt.MouseButton.RightButton:
             menu=LabelMenu(dataset_id=self.datasetID)
             menu.move(event.screenPos())
             menu.show()
             menu.onLabelItemClicked.connect(self.setLabel)
-        else:
+        elif flags & QGraphicsItem.GraphicsItemFlag.ItemIsSelectable:
             super().mousePressEvent(event)
     """进入时禁用scene编辑"""
     def hoverEnterEvent(self, event):
@@ -340,7 +397,11 @@ class LabelMenu(RoundMenu):
     def __init__(self, title="",dataset_id="", parent=None):
         super().__init__(title, parent) 
         self.dataset_id = dataset_id
+
+        self.setWindowFlag(Qt.Dialog, True)  # 模拟对话框行为，防止自动关闭
+        self.setWindowModality(Qt.ApplicationModal)  # 阻止点击其他窗口
         self.updateLabelList()
+
     
     def updateLabelList(self):
         """ 更新标签列表 """
@@ -350,12 +411,21 @@ class LabelMenu(RoundMenu):
 
         labels=DO.query_label(project_id=project_id)
         if not labels:
-            InfoBar.warning("标签列表为空", "请先添加标签", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
+            InfoBar.warning("标签列表为空", "请先添加标签", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self.window())
+            self.setWindowFlag(Qt.Dialog, False)  # 模拟对话框行为，防止自动关闭
+            self.setWindowModality(Qt.NonModal)
             return
         for label in labels:
             action = Action(FIF.PIN, label.name)
             self.addAction(action)
-            action.triggered.connect(lambda checked, lblID=label.id, color=QColor(label.color): self.onLabelItemClicked.emit(lblID, color))
+            color=QColor(label.color)
+            action.triggered.connect(lambda checked,lblID=label.id,color=color:self.onActionTriggered(checked,lblID,color))
+            
+    def onActionTriggered(self, checked, lblID, color):
+        """ 处理标签项点击事件 """
+        self.onLabelItemClicked.emit(lblID, color)
+        self.hide()
+        self.deleteLater()  # 点击后关闭菜单
     
     def keyPressEvent(self, event):
         def handleKeyPress(index:int):
@@ -365,8 +435,15 @@ class LabelMenu(RoundMenu):
                 self.hide()
             
         """ 处理键盘按键事件 """
-        Keys= {Qt.Key_1: 0,Qt.Key_2: 1,Qt.Key_3: 2,Qt.Key_4: 3,Qt.Key_5: 4,Qt.Key_6: 5,Qt.Key_7: 6,Qt.Key_8: 7,Qt.Key_9: 8}
+        Keys= {Qt.Key_1: 1,Qt.Key_2: 2,Qt.Key_3: 3,Qt.Key_4: 4,Qt.Key_5: 5,Qt.Key_6:6,Qt.Key_7: 7,Qt.Key_8: 8,Qt.Key_9: 9}
         if event.key() in Keys:
             handleKeyPress(Keys[event.key()])
         else:
             super().keyPressEvent(event)
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.RightButton:
+            self.hide()  # 右键点击菜单自身关闭
+            self.deleteLater()
+        else:
+            super().mousePressEvent(event)

@@ -7,19 +7,22 @@ from qfluentwidgets import (NavigationItemPosition, MessageBox, setTheme, Theme,
                             NavigationAvatarWidget, qrouter, SubtitleLabel, setFont,FluentIcon)
 from DataWidget.DataInterface import DataInterface
 from LabelWidget.LabelInterface import LabelInterface
-
+from CheckWidget.CheckInterface import CheckInterface
+from GlobalData import gData
 
 class AoiWindow(MSFluentWindow):
     """ Main window """
     def __init__(self,Role:int = 0):
         super().__init__()
         setTheme(Theme.DARK)
-        self.setWindowIcon(QPixmap(os.path.join(os.path.dirname(__file__), 'hr.svg')))
+        self.setWindowIcon(QPixmap('hr.svg'))
 
         self.dataInterface = DataInterface()
         self.labelInterface = LabelInterface()
+        self.checkInterface = CheckInterface()
         self.addSubInterface(self.dataInterface,FluentIcon.APPLICATION, "数据管理", None,NavigationItemPosition.TOP,False)
         self.addSubInterface(self.labelInterface,FluentIcon.EDIT, "标注管理", None,NavigationItemPosition.TOP,False)
+        self.addSubInterface(self.checkInterface,FluentIcon.CHECKBOX, "校验模型", None,NavigationItemPosition.TOP,False)
         self.setWindowTitle("AOI标注工具")
 
         self.dataInterface.projectCard.onLabelDatasetBtnClicked.connect(self.onLabelDatasetBtnClicked)
@@ -34,8 +37,18 @@ class AoiWindow(MSFluentWindow):
             screen.center().y() - size.height() // 2
         )
 
+
     def onLabelDatasetBtnClicked(self, dataset: int):
         self.stackedWidget.setCurrentIndex(1)
         self.labelInterface.setDataset(dataset)
-        
+
+    def closeEvent(self, event):
+        """重写关闭事件"""
+        print("关闭窗口")
+        # if self.checkInterface.client:
+        #     self.checkInterface.client.stop()
+        if self.checkInterface.executor:
+            self.checkInterface.executor.stop()
+
+        super().closeEvent(event)
 

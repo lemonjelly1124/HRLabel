@@ -34,10 +34,15 @@ class Dataset(BaseModel):
 #定义图片数据模型
 class ImageData(BaseModel):
     id = AutoField(primary_key=True)
-    dataset= ForeignKeyField(Dataset, backref='images')
+    dataset= ForeignKeyField(Dataset, backref='images',on_delete='CASCADE')
     path= CharField(null=True)
-    labels = TextField(null=False)  # 存储标签信息的JSON字符串
+    sizeW=IntegerField(null=True)
+    sizeH=IntegerField(null=True)
+    labels = TextField(null=True)  # 存储标签信息的JSON字符串
 #     created_at = DateTimeField(default=datetime.datetime.now)
+
+    def __str__(self):
+        return f"图片ID:{self.id},图片路径:{self.path},所属数据集:{self.dataset.name}"
 
 #定义标签类模型
 class LabelData(BaseModel):
