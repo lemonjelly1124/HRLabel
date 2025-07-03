@@ -1,0 +1,62 @@
+{
+    "ip": "127.0.0.1",
+    "port": 1234,
+    "url": "D:\\AIProgram\\AiDetect.exe",
+    "args": [
+        "D:\\AIProgram\\AITest.py",
+        "/ip",
+        "127.0.0.1",
+        "/port",
+        "1234",
+        "/display",
+        "True",
+        "/weights",
+        "*weights",
+        "/model",
+        "rtdetr"
+    ],
+    "args1": [
+        "D:\\AIProgram\\AIRegionTest.py",
+        "/ip",
+        "127.0.0.1",
+        "/port",
+        "1234",
+        "/display",
+        "True",
+        "/weights",
+        "*weights",
+        "/model",
+        "yolo",
+        "/weights1",
+        "*weights1",
+        "/model1",
+        "rtdetr"
+    ],
+    "env": "D:\\AIProgram",
+    "splitSize": 640,
+    "watcherConfig": {
+        "script_path": "AITrain.py",
+        "exe_path": "D:\\AIProgram\\AiDetect.exe",
+        "working_directory": "D:\\AIProgram",
+        "model": "rtdetr",
+        "weights": "rtdetr-l.pt",
+        "data": "\u6570\u636e\u96c6.yaml",
+        "epochs": 100,
+        "batch_size": 4,
+        "workers": 4,
+        "project": "train",
+        "name": "temp",
+        "exist_ok": true
+    },
+    "datasetPath": "D:/AIProgram/dataset",
+    "errorLogDir": "D:/AIProgram/errorlog",
+    "models": [
+        "yolo",
+        "rtdetr"
+    ],
+    "weights": [
+        "yolo11l.pt",
+        "rtdetr-l.pt",
+        "yolo11l-seg.pt"
+    ]
+}
