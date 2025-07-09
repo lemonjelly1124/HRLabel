@@ -93,7 +93,7 @@ class CheckInterface(QWidget):
 
         try:
             self.checkCard.setImage(path)
-            if self.client is None and not self.client.is_connected():
+            if self.client is None:
                 InfoBar.warning("模型测试","模型未打开",Qt.Horizontal,True,2500,InfoBarPosition.TOP,self.window())
                 return 
             if not self.client.is_connected():
@@ -112,9 +112,7 @@ class CheckInterface(QWidget):
         except Exception as e:
             print(f"An error occurred: {e}")
         finally:
-            # if self.checkCard.graphicsScene.imageItem():
-            #     self.checkCard.graphicsView.fitInView(self.checkCard.graphicsScene.imageItem(), Qt.KeepAspectRatio)
-            print("Process execution completed.")
+            pass
 
 
     

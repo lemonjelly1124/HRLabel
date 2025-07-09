@@ -59,6 +59,7 @@ class CheckCard(HeaderCardWidget):
         """ Set the image for the card """
         self.graphicsScene.clearOthers()
         self.graphicsScene.setImage(QImage(path))
+        self.graphicsView.fitInView(self.graphicsScene.imageItem(), Qt.KeepAspectRatio)
     def setResult(self,result):
         """ Set the result for the card """
         for item in result:
@@ -70,7 +71,6 @@ class CheckCard(HeaderCardWidget):
                 rectItem.setScore(item["classScore"])
                 rectItem.className=item["className"]
                 self.graphicsScene.addItem(rectItem)
-                # print(rectItem.isSelected())
             elif item['mask'] is not None:
                 rect=item["rect"]
                 polygon=ScorePolygonItem()

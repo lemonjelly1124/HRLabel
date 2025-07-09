@@ -56,9 +56,9 @@ class LabelInterface(QWidget):
     def setDataset(self, datasetID):
         """ 设置当前数据集 """
         self.datasetID = datasetID
+        self.graphCard.setDataset(datasetID)
         self.imageCard.setImageList(datasetID)
         self.labelCard.setLabelList(datasetID)
-        self.graphCard.setDataset(datasetID)
 
 
         

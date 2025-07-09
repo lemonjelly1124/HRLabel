@@ -153,7 +153,7 @@ class DataInterface(QWidget):
 
     def onStopBtnClicked(self):
         """点击停止按钮"""
-        if self.watcher is not None and self.watcher.Status== TrainWatcher.Status.RUNNING:
+        if self.watcher is not None:
             self.watcher.stop()
             self.isTraining=False
             self.isInTraining()

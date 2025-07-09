@@ -8,7 +8,7 @@ from qfluentwidgets import (PushButton,PrimaryPushButton,FluentIcon,LineEdit,Too
 from Database.DataOperate import DataOperate as DO
 from .ProjectDialog import ProjectDialog
 from .DatasetDialog import DatasetDialog
-
+from HRVision.utils.tools import async_run
 from Database.BaseModel import *
 from PySide6.QtWidgets import QFileDialog
 from GlobalData import gData
@@ -17,6 +17,8 @@ class ProjectCard(SimpleCardWidget):
     onProjectEdited = Signal(int, str)
     onProjectDeleted = Signal(int)
     onLabelDatasetBtnClicked = Signal(int)
+
+    onImportFinished= Signal(int, int)  #state,count
 
 
     def __init__(self,parent=None):
@@ -46,6 +48,8 @@ class ProjectCard(SimpleCardWidget):
         self.stopBtn=PushButton("停止训练")
         self.dataTable = TableWidget()
 
+        self.editBtn.setToolTip("编辑项目")
+        self.deleteBtn.setToolTip("删除项目")
         self.trainProgress=ProgressRing()
         self.trainProgress.setValue(0)
         self.trainProgress.setTextVisible(True)
@@ -96,6 +100,8 @@ class ProjectCard(SimpleCardWidget):
         self.editBtn.clicked.connect(self.onEditProjectBtnClicked)
         self.addDataset.clicked.connect(self.onAddDatasetBtnClicked)
         self.deleteBtn.clicked.connect(self.onDeleteProjectBtnClicked)
+
+        self.onImportFinished.connect(self.importFinished)
 
     
     def onDeleteProjectBtnClicked(self):
@@ -187,27 +193,36 @@ class ProjectCard(SimpleCardWidget):
         fileDialog.setFileMode(QFileDialog.ExistingFiles)
         fileDialog.setNameFilter("Images (*.png *.jpg *.jpeg *.bmp *.tiff)")
         if fileDialog.exec():
-            InfoBar.info("导入图片", "正在导入图片，请稍等...", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
-            selectedFiles = fileDialog.selectedFiles()
-            if selectedFiles:
-                if len(selectedFiles) > 300:
-                    selectedFiles = selectedFiles[:300]
-                    InfoBar.warning("导入图片", "已限制导入图片数量为300张", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
-                for filePath in selectedFiles:
-                    qimage=QImage(filePath)
-                    image=ImageData()
-                    image.path = filePath
-                    image.dataset = dataId
-                    image.sizeW=qimage.width()
-                    image.sizeH=qimage.height()
-                    DO.insert_image(image)
 
-                InfoBar.success("导入图片", f"成功导入 {len(selectedFiles)} 张图片", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
-                self.setDatasetProgress(dataId)  # 更新数据集的标注进度
-            else:
-                InfoBar.warning("导入图片", "未选择任何图片", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
-    
-    
+            def importImages():
+                selectedFiles = fileDialog.selectedFiles()
+                if len(selectedFiles)>0:
+                    if len(selectedFiles) > 300:
+                        selectedFiles = selectedFiles[:300]
+                        self.onImportFinished.emit(1, len(selectedFiles))  # Emit signal with state 1 for limited import
+                    for filePath in selectedFiles:
+                        qimage=QImage(filePath)
+                        image=ImageData()
+                        image.path = filePath
+                        image.dataset = dataId
+                        image.sizeW=qimage.width()
+                        image.sizeH=qimage.height()
+                        DO.insert_image(image)
+
+                    self.onImportFinished.emit(2, len(selectedFiles),datasetId=dataId)  # Emit signal with state 2 for successful import
+                else:
+                    self.onImportFinished.emit(3, 0)
+            InfoBar.info("导入图片", "正在导入图片，请稍等...", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
+            async_run(importImages)
+
+    def importFinished(self, state: int, count: int,datasetId: int = None):
+        if state==1:
+            InfoBar.warning("导入图片", "已限制导入图片数量为300张", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
+        if state==2:
+            InfoBar.success("导入图片", f"成功导入 {count} 张图片", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
+            self.setDatasetProgress(datasetId)  # 更新数据集的标注进度
+        if state==3:
+            InfoBar.warning("导入图片", "未选择图片", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
         
     def addDataItem(self, dataObj: dict):
         """ Add a data item to the data table """

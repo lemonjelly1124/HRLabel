@@ -64,6 +64,12 @@ class ImageCard(HeaderCardWidget):
                 status = InfoBarIcon.ERROR
 
             self.addImageItem(img.id, img.path, status)
+        
+        if self.imageList.count() > 0:
+            firstItem = self.imageList.item(0)
+            firstImgItem:ImageItem = self.imageList.itemWidget(firstItem)
+            firstImgItem.onImageClicked.emit(firstImgItem.imgID)
+            self.imageList.setCurrentRow(0)
     
     def refreshImageStatus(self,imgID:int):
         """ 刷新当前选中的图片 """

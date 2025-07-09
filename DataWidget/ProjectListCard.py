@@ -33,6 +33,8 @@ class ProjectListCard(SimpleCardWidget):
         self.addBtn.clicked.connect(self.onAddProjectBtnClicked)
         self.QueryProject(None)
 
+        self.searchLineEdit.textChanged.connect(self.onSearchTextChanged)
+
 
     def addProjectItem(self, name: str, id: str):
         """ Add a project item to the project list """
@@ -45,7 +47,13 @@ class ProjectListCard(SimpleCardWidget):
 
     def QueryProject(self, key: str):
         """ Query a project by its ID """
-        projects = DO.query_project(key=key)
+        while self.projectListWidget.count() > 0:
+            item = self.projectListWidget.takeItem(0)
+            del item
+        if( key is None) or (key.strip() == ""):
+            projects = DO.query_project()
+        else:
+            projects = DO.query_project(name=key)
         for project in projects:
             self.addProjectItem(project.name, project.id)
     
@@ -80,6 +88,13 @@ class ProjectListCard(SimpleCardWidget):
                 self.addProjectItem(project.name, projectRes.id)
             else:
                 InfoBar.warning("添加项目失败", "添加项目异常", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self.window())
+    
+    def onSearchTextChanged(self, text: str):
+        """ Search project by name """
+        if text.strip() == "":
+            self.QueryProject(None)
+        else:
+            self.QueryProject(text.strip())
 
 
 class ProjectItem(QWidget):

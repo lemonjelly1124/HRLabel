@@ -28,6 +28,8 @@ class DataOperate:
         
         if 'id' in kwargs:
             query = query.where(Project.id == kwargs['id'])
+        if 'name' in kwargs:
+            query = query.where(Project.name.contains(kwargs['name']))
         projects= []
         for project in query:
             projects.append(project)

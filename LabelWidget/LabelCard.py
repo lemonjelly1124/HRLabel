@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QApplication,QHBoxLayout,QVBoxLayout,QGridLayout,Q
 from qfluentwidgets import (PushButton,PrimaryPushButton,FluentIcon,LineEdit,ToolButton,TransparentToolButton,TransparentPushButton,MessageBox,InfoBar,InfoBarPosition,ListWidget,HeaderCardWidget,ImageLabel,BodyLabel,TableWidget,setFont,ColorPickerButton)
 from Database.BaseModel import *
 from Database.DataOperate import DataOperate as DO
+from hrfluentwidgets import DropDownColorPalette
 class LabelCard(HeaderCardWidget):
     onLabelColorChanged = Signal(int,QColor)
 
@@ -15,6 +16,8 @@ class LabelCard(HeaderCardWidget):
         self.addLabelBtn = ToolButton(FluentIcon.ADD)
         self.labelList= ListWidget()
         self.setFixedWidth(350)
+
+        self.addLabelBtn.setToolTip("添加标签")
 
         self.setTitle("标签列表")
         self.headerLayout.setContentsMargins(8, 8, 8, 0)
@@ -72,9 +75,7 @@ class LabelCard(HeaderCardWidget):
                     self.labelList.takeItem(i)
                     break
 
-
         InfoBar.success("删除标签", "标签已成功删除", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=QApplication.activeWindow())
-
 
     def __initConnect__(self):
         """ Initialize connections """
@@ -98,16 +99,25 @@ class LabelItem(QWidget):
         """ 初始化布局 """
         self.hLayout = QHBoxLayout(self)
         self.color=ColorPickerButton(color,"选择颜色",enableAlpha=True)
+        self.colorBtn=DropDownColorPalette(self)
         self.lblName= BodyLabel(name)
-        self.lineName = LineEdit(self)
+        self.lineName = EnterLineEdit(self)
         self.editBtn=TransparentToolButton(FluentIcon.EDIT)
         self.deleteBtn=TransparentToolButton(FluentIcon.DELETE)
         self.confirmBtn=TransparentToolButton(FluentIcon.ACCEPT_MEDIUM)
         self.cancelBtn=TransparentToolButton(FluentIcon.CANCEL_MEDIUM)
 
+        self.editBtn.setToolTip("编辑标签")
+        self.deleteBtn.setToolTip("删除标签")
+        self.confirmBtn.setToolTip("确认修改")
+        self.cancelBtn.setToolTip("取消修改")
+
         self.color.setFixedSize(24, 24)
+        self.colorBtn.setDefaultColor(QColor("#36e1ff"))
+        self.colorBtn.setColor(color)
 
         self.hLayout.addWidget(self.color)
+        self.hLayout.addWidget(self.colorBtn)
         self.hLayout.addWidget(self.lblName)
         self.hLayout.addWidget(self.lineName)
         self.hLayout.addWidget(self.editBtn)
@@ -154,4 +164,28 @@ class LabelItem(QWidget):
         self.confirmBtn.clicked.connect(self.onConfirmBtnClicked)
         self.cancelBtn.clicked.connect(self.onCancelBtnClicked)
         self.color.colorChanged.connect(self.onColorChangedSlot)
+        self.colorBtn.colorChanged.connect(self.onColorChangedSlot)
         self.deleteBtn.clicked.connect(self.onDeleteBtnClicked)
+        self.lineName.enterPressed.connect(self.onConfirmBtnClicked)
+
+class EnterLineEdit(LineEdit):
+    """ Custom LineEdit that emits a signal on Enter key press """
+    enterPressed = Signal(str)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
+            self.enterPressed.emit(self.text())
+        else:
+            super().keyPressEvent(event)
+
+# colors = [
+#     ["#ffffff", "#FFF0F5", "#E6E6FA", "#E1FFFF", "#F0F8FF","#F0FFF0", "#F5FFFA","#FFFFE0", "#FAFAD2",   "#FF0000"],
+#     ["#d0cece", "#FFC0CB", "#DDA0DD", "#87CEFA", "#E0FFFF","#7FFFAA", "#7FFFD4","#FFFACD", "#F5F5DC",   "#800080"],
+#     ["#afabab", "#FF69B4", "#BA55D3", "#00FFFF", "#B0E0E6","#00FA9A", "#90EE90","#EEE8AA", "#F0E68C",   "#0000CD"],
+#     ["#595959", "#DB7093", "#9370DB", "#00BFFF", "#40E0D0","#00FF7F", "#00FA9A","#BDB76B", "#FFFF00",   "#006400"],
+#     ["#404040", "#FF69B4", "#9400D3", "#1E90FF", "#00CED1","#32CD32", "#7CFC00","#FFD700", "#DAA520",   "#CD853F"],
+#     ["#0d0d0d", "#FF1493", "#9932CC", "#0000FF", "#008B8B","#008000", "#00FF00","#B8860B", "#ffc000",   "#FF4500"]
+# ]

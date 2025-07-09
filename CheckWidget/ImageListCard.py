@@ -12,13 +12,13 @@ from Database.BaseModel import *
 from PySide6.QtWidgets import QFileDialog
 from HRVision.utils.tools import async_run
 class ImageListCard(HeaderCardWidget):
-
     onImageClicked = Signal(str)
+    insertImage=Signal(str,QImage)
     def __init__(self, parent=None):
         super().__init__(parent)
 
         self.setTitle("图片列表")
-        self.setFixedHeight(190)
+        self.setFixedHeight(200)
         self.headerLayout.setContentsMargins(12,0,6,0)
         self.headerView.setFixedHeight(28)
         self.__initWidget__()
@@ -49,6 +49,11 @@ class ImageListCard(HeaderCardWidget):
         self.headerLayout.addWidget(self.exportBtn)
         self.headerLayout.addWidget(self.clearBtn)
 
+        self.importBtn.setToolTip("导入图片")
+        self.dirBtn.setToolTip("选择图片文件夹")
+        self.exportBtn.setToolTip("导出图片")
+        self.clearBtn.setToolTip("清空图片列表")
+
 
         self.viewLayout.setContentsMargins(0, 0, 0, 0)
         self.hLisatLayout.setContentsMargins(0, 0, 0, 0)
@@ -60,19 +65,19 @@ class ImageListCard(HeaderCardWidget):
         self.dirBtn.clicked.connect(self.onDirBtnClicked)
         self.clearBtn.clicked.connect(self.onClearBtnClicked)
         self.exportBtn.clicked.connect(self.onExportBtnClicked)
+        self.insertImage.connect(self.onInsertImage)
     
     def onImportBtnClicked(self):
         """ 点击导入按钮 """
-        # def importImg():
         fileNames, _ = QFileDialog.getOpenFileNames(self, "选择图片", "", "Images (*.png *.xpm *.jpg *.bmp)")
         if fileNames:
-            if len(fileNames)>100:
-                MessageBox.warning("警告","一次最多导入100张图片",self.window())
-                fileNames=fileNames[:100]
-            for fileName in fileNames:
-                self.insertImage(fileName)
-
-        # async_run(importImg)
+            if len(fileNames)>200:
+                InfoBar.warning("警告","一次最多导入200张图片",Qt.Horizontal,True,2500,InfoBarPosition.TOP,self.window())
+                fileNames=fileNames[:200]
+        def importImg():
+                for imgPath in fileNames:
+                    self.insertImage.emit(imgPath,QImage(imgPath))
+        async_run(importImg)
 
     def onDirBtnClicked(self):
         """ 点击选择图片文件夹按钮 """
@@ -89,11 +94,13 @@ class ImageListCard(HeaderCardWidget):
                 file_path = os.path.join(folder_path, file)
                 if os.path.isfile(file_path) and any(file.lower().endswith(ext) for ext in image_extensions):
                     image_paths.append(file_path)
-            if len(image_paths)>100:
-                MessageBox.warning("警告","一次最多导入100张图片",self.window())
-                image_paths=image_paths[:100]
-            for image_path in image_paths:
-                self.insertImage(image_path)
+            if len(image_paths)>200:
+                InfoBar.warning("警告","一次最多导入200张图片",Qt.Horizontal,True,2500,InfoBarPosition.TOP,self.window())
+                image_paths=image_paths[:200]
+            def importImg():
+                for imgPath in image_paths:
+                    self.insertImage.emit(imgPath,QImage(imgPath))
+        async_run(importImg)
 
     def onExportBtnClicked(self):
         """ 点击导出按钮 """
@@ -115,9 +122,9 @@ class ImageListCard(HeaderCardWidget):
             if item.widget():
                 item.widget().deleteLater()
 
-    def insertImage(self,imagePath:str):
+    def onInsertImage(self,imagePath:str,img:QImage):
         """ Insert image into image list """
-        imageLabel = ImageItem(imagePath)
+        imageLabel = ImageItem(imagePath,img)
         self.hLisatLayout.addWidget(imageLabel)
         imageLabel.clicked.connect(lambda:self.onImageItemClicked(imagePath))
     def onImageItemClicked(self,imagePath):
@@ -156,22 +163,23 @@ class ImageListCard(HeaderCardWidget):
                     break
 
 class ImageItem(CardWidget):
-    def __init__(self, image: str, parent: QWidget = None):
+    def __init__(self, path: str,img:QImage, parent: QWidget = None):
         super().__init__(parent)
         self.vLayout = QVBoxLayout(self)
-        self.path=image
+        self.path=path
 
         self.imgLabel = ImageLabel()
         self.pathLabel = BodyLabel()
         self.icon=InfoIconWidget(InfoBarIcon.SUCCESS)
         self.pathLabel.setAlignment(Qt.AlignCenter)
-        self.pathLabel.setText(os.path.basename(image))   
+        self.pathLabel.setText(os.path.basename(path))   
         self.pathLabel.setWordWrap(True)
         self.pathLabel.setFixedHeight(20)
 
-        self.imgLabel.setImage(image)
-        self.imgLabel.setFixedSize(136, 136)
-        self.imgLabel.scaledToWidth(136)
+        self.imgLabel.setImage(img)
+        self.imgLabel.setFixedSize(120, 120)
+        self.imgLabel.scaledToWidth(120)
+        self.imgLabel.scaledToHeight(120)
 
         self.vLayout.addWidget(self.imgLabel,0,Qt.AlignCenter)
         self.vLayout.addWidget(self.pathLabel,0,Qt.AlignCenter)
@@ -209,7 +217,7 @@ class HorizontalScrollArea(ScrollArea):
             return
         
         # 设置滚动步长（可根据需要调整）
-        step = delta * 0.5  # 减小滚动步长使滚动更平滑
+        step = delta * 0.8  # 减小滚动步长使滚动更平滑
         
         target_value = scroll_bar.value() - step
         
