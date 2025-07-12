@@ -5,6 +5,7 @@ from qfluentwidgets import (PushButton,PrimaryPushButton,FluentIcon,LineEdit,Too
 from Database.BaseModel import *
 from Database.DataOperate import DataOperate as DO
 from hrfluentwidgets import DropDownColorPalette
+from GlobalData import gData
 class LabelCard(HeaderCardWidget):
     onLabelColorChanged = Signal(int,QColor)
 
@@ -94,6 +95,11 @@ class LabelItem(QWidget):
 
         self.__initWidget__( lblName, color)
         self.__initConnect__()
+
+        print(gData.isDebug)
+        if not gData.isDebug:
+            self.colorBtn.setVisible(False)
+
 
     def __initWidget__(self,name:str,color: QColor):
         """ 初始化布局 """

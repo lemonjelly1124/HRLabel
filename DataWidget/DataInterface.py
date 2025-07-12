@@ -85,16 +85,16 @@ class DataInterface(QWidget):
 
     def __initConnect__(self):
         """ Initialize the connections for signals and slots """
-        self.projectCard.onProjectEdited.connect(self.projectListCard.onProjectEdited)
-        self.projectCard.onProjectDeleted.connect(self.projectListCard.onProjectDeleted)
+        self.projectCard.projectEdited.connect(self.projectListCard.onProjectEdited)
+        self.projectCard.projectDeleted.connect(self.projectListCard.onProjectDeleted)
         self.projectCard.trainBtn.clicked.connect(self.onTrainBtnClicked)
         self.projectCard.saveBtn.clicked.connect(self.onSaveBtnClicked)
         self.projectCard.exportBtn.clicked.connect(self.onExportBtnClicked)
         self.projectCard.stopBtn.clicked.connect(self.onStopBtnClicked)
 
 
-        self.projectListCard.onProjectItemClicked.connect(self.onProjectItemClicked)
-        self.projectListCard.onHideProjectCard.connect(self.projectCard.hide)
+        self.projectListCard.projectItemClicked.connect(self.onProjectItemClicked)
+        self.projectListCard.hideProjectCard.connect(self.projectCard.hide)
 
 
     def onTrainBtnClicked(self):
@@ -146,6 +146,16 @@ class DataInterface(QWidget):
         InfoBar.info("模型保存", "保存成功", duration=3000, position=InfoBarPosition.TOP, parent=self.window())
     
     def onExportBtnClicked(self):
+        """导出数据集"""
+        checkedRows=0
+        for i in range(self.projectCard.dataTable.rowCount()):
+            item = self.projectCard.dataTable.item(i, 0)
+            if item is not None and item.checkState() == Qt.Checked:
+                checkedRows+=1
+        if checkedRows==0:
+            InfoBar.error("训练模型", "请至少选择一个数据集进行训练", duration=3000, position=InfoBarPosition.TOP, parent=self.window())
+            return
+        
         trainDlg=TrainModelDialog(self.window())
         if trainDlg.exec() == MessageBox.Accepted:
             self.isTrainSplit=trainDlg.chkSplit.isChecked()
@@ -182,17 +192,19 @@ class DataInterface(QWidget):
         imagesSplitDir=gData.datasetPath+'/'+self.projectCard.titleLbl.text()+"_split/images/"
         labelsSplitDir=gData.datasetPath+'/'+self.projectCard.titleLbl.text()+"_split/labels/"
 
-
-        # 清空imagesDir文件夹
-        if os.path.exists(imagesDir):
+        if os.path.exists(imagesDir) and not self.isTrainSplit:
             shutil.rmtree(imagesDir)
-            # 清空labelsDir文件夹
-        if os.path.exists(labelsDir):
+        if os.path.exists(labelsDir) and not self.isTrainSplit:
             shutil.rmtree(labelsDir)
+
+        if os.path.exists(imagesSplitDir) and self.isTrainSplit:
+            shutil.rmtree(imagesSplitDir)
+        if os.path.exists(labelsSplitDir) and self.isTrainSplit:
+            shutil.rmtree(labelsSplitDir)
         
-        if not os.path.exists(imagesDir):
+        if not os.path.exists(imagesDir) and not self.isTrainSplit:
             os.makedirs(imagesDir)
-        if not os.path.exists(labelsDir):
+        if not os.path.exists(labelsDir) and not self.isTrainSplit:
             os.makedirs(labelsDir)
 
         if not os.path.exists(imagesSplitDir) and self.isTrainSplit:
@@ -213,7 +225,7 @@ class DataInterface(QWidget):
             if self.isTrainSplit:
 
                 #写入标签数据
-                labelStrArr=transform.transformRtdetr(imageName,imageObj.labels,gData.splitSize,labelDict)
+                labelStrArr=transform.transformYoloSplit(imageObj.labels,gData.splitSize,labelDict)
                 for i in range(len(labelStrArr)):
                     with open(labelsSplitDir+imageName.split(".")[0]+"_"+str(i)+".txt", "w") as f:
                         f.write(labelStrArr[i])
@@ -222,11 +234,9 @@ class DataInterface(QWidget):
                 for i in range(len(imgList)):
                     imgList[i].save(imagesSplitDir+imageName.split(".")[0]+"_"+str(i)+".jpg")
             else:
-                os.makedirs(imagesDir,exist_ok=True)
-                os.makedirs(labelsDir,exist_ok=True)
                 shutil.copy2(path,imagesDir+imageName)
 
-                labelStr=transform.transformYolo(imageName,imageObj.labels,imageObj.sizeW,imageObj.sizeH,labelDict)
+                labelStr=transform.transformYolo(imageObj.labels,imageObj.sizeW,imageObj.sizeH,labelDict)
                 with open(labelsDir+imageName.split(".")[0]+".txt", "w") as f:
                     f.write(labelStr)
 

@@ -1,6 +1,8 @@
 import os,json,ast
-from PySide6.QtCore import QFile,QTextStream,QRectF,QPointF
+from PySide6.QtCore import QRectF,QPointF
 from PySide6.QtGui import QPolygonF,QImage
+from Database.DataOperate import DataOperate as DO
+from Database.BaseModel import *
 class TransformBase:
     def __init__(self) -> None:
         """"""
@@ -13,7 +15,7 @@ class TransformBase:
         except Exception:
             return []
 
-    def transformYolo(self,fileName:str,labelStr:str,width:int,height:int,labelDict:dict)->str:
+    def transformYolo(self,labelStr:str,width:int,height:int,labelDict:dict)->str:
         """
         转换为yolo格式
         """
@@ -79,8 +81,7 @@ class TransformBase:
                 imgList.append(qimage)
         return imgList
     
-    def transformRtdetr(self,fileName:str,labelStr:str,splitSize:int,labelDict:dict)->list[str]:
-
+    def transformYoloSplit(self,labelStr:str,splitSize:int,labelDict:dict)->list[str]:
         """
         转换为rtdetr格式
         """
@@ -113,8 +114,69 @@ class TransformBase:
                 labelStr=str(labelDict[str(labelObj["label_id"])])+" "+rectStr
                 labelStrArr.append(labelStr)
 
-
         return labelStrArr
+    
+    def transfromToLabels(self,originArr:dict,projectID:str)->str:
+        """
+        将labelme标注的数据EfficientSan(accuracy)转换为labelStr格式
+        """
+        print(originArr)
+        print(projectID)
+        labelDict:dict={}
+        labellist:list[LabelData]=DO.query_label(project_id=projectID)
+        labelDict= {label.name:label.id  for label in labellist}
 
+        print(labelDict)
+        resArr:list[dict]=[]
+        for item in originArr:
+            print(item)
+            if item["shape_type"]=="rectangle":
+                labelName=item["label"]
+                rectDict={}
+                
+                if labelName not in labelDict.keys():
+                    labelData=LabelData()
+                    labelData.name=labelName
+                    labelData.color="#36e1ff"
+                    labelData.project=projectID
+                    labelData=DO.insert_label(labelData)
+                    labelDict[labelName]=labelData.id
+                    labelID=labelData.id
+                else:
+                    labelID=labelDict[labelName]
+                x= item["points"][0][0]
+                y= item["points"][0][1]
+                width= abs(item["points"][1][0]-x)
+                height= abs(item["points"][1][1]-y)
 
+                rectDict["type"]="LabelRectItem"
+                rectDict["label_id"]=labelID
+                rectDict["rect"]=f"{x},{y},{width},{height}"
+                resArr.append(rectDict)
+            elif item["shape_type"]=="polygon":
+                labelName=item["label"]
+                polygonDict={}
+                
+                if labelName not in labelDict.keys():
+                    labelData=LabelData()
+                    labelData.name=labelName
+                    labelData.color="#36e1ff"
+                    labelData.project=projectID
+                    labelData=DO.insert_label(labelData)
+                    labelDict[labelName]=labelData.id
+                    labelID=labelData.id
+                else:
+                    labelID=labelDict[labelName]
+                
+                points=item["points"]
+                polygonStr=""
+                for point in points:
+                    polygonStr+=str(point[0])+","+str(point[1])+","
+                polygonStr=polygonStr[:-1]
 
+                polygonDict["type"]="LabelPolygonItem"
+                polygonDict["label_id"]=labelID
+                polygonDict["polygon"]=polygonStr
+                resArr.append(polygonDict)
+        
+        return str(resArr)

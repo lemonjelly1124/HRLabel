@@ -1,25 +1,25 @@
 from PySide6.QtCore import Qt,Signal,QSize
-from PySide6.QtGui import QImage,QPixmap,QFont
+from PySide6.QtGui import QImage,QPixmap,QFont,QCursor
 from typing import List
-
+import json,os
+from pathlib import Path
 from PySide6.QtWidgets import QHBoxLayout,QVBoxLayout,QGridLayout,QWidget,QStackedWidget,QListWidgetItem,QTableWidgetItem,QHeaderView,QSpacerItem,QSizePolicy
 from qfluentwidgets import (PushButton,PrimaryPushButton,FluentIcon,LineEdit,ToolButton,ListWidget,SimpleCardWidget,MessageBox,ImageLabel,BodyLabel,TableWidget,setFont,
-                            ProgressBar,HyperlinkButton,InfoBar,InfoBarPosition,ProgressRing)
+                            ProgressBar,HyperlinkButton,InfoBar,InfoBarPosition,ProgressRing,RoundMenu,Action,TransparentToolButton)
 from Database.DataOperate import DataOperate as DO
 from .ProjectDialog import ProjectDialog
 from .DatasetDialog import DatasetDialog
 from HRVision.utils.tools import async_run
 from Database.BaseModel import *
 from PySide6.QtWidgets import QFileDialog
-from GlobalData import gData
+from GlobalData import gData,transform
 class ProjectCard(SimpleCardWidget):
     """ Project Card Widget """
-    onProjectEdited = Signal(int, str)
-    onProjectDeleted = Signal(int)
+    projectEdited = Signal(int, str)
+    projectDeleted = Signal(int)
     onLabelDatasetBtnClicked = Signal(int)
-
-    onImportFinished= Signal(int, int)  #state,count
-
+    importFinished= Signal(int, int,int)  #state,count,datasetID
+    checkLabeledFinished= Signal(dict)  #dataId,isDir
 
     def __init__(self,parent=None):
         super().__init__(parent)
@@ -101,7 +101,8 @@ class ProjectCard(SimpleCardWidget):
         self.addDataset.clicked.connect(self.onAddDatasetBtnClicked)
         self.deleteBtn.clicked.connect(self.onDeleteProjectBtnClicked)
 
-        self.onImportFinished.connect(self.importFinished)
+        self.importFinished.connect(self.onImportFinished)
+        self.checkLabeledFinished.connect(self.onCheckLabeledFinished)
 
     
     def onDeleteProjectBtnClicked(self):
@@ -115,7 +116,7 @@ class ProjectCard(SimpleCardWidget):
             DO.delete_dataset(id=dataset.id)
             DO.delete_image(dataset_id=dataset.id)
 
-        self.onProjectDeleted.emit(self.projectID)
+        self.projectDeleted.emit(self.projectID)
 
 
     def onEditProjectBtnClicked(self):
@@ -133,7 +134,7 @@ class ProjectCard(SimpleCardWidget):
                 InfoBar.success( "修改项目信息", "修改项目信息成功",orient=Qt.Horizontal, isClosable=True, duration=3000,position=InfoBarPosition.TOP,parent=self)
                 self.titleLbl.setText(project.name)
                 self.descLbl.setText(project.description)
-                self.onProjectEdited.emit(self.projectID, project.name)
+                self.projectEdited.emit(self.projectID, project.name)
             else:
                 InfoBar.warning("修改项目信息", "修改项目信息异常", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
     
@@ -187,7 +188,7 @@ class ProjectCard(SimpleCardWidget):
         else:
             InfoBar.error("删除数据集", "删除数据集失败", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
     
-    def onImportImageBtnClicked(self, dataId: int):
+    def onImportImageBtnClicked(self, datasetId: int):
         """点击导入图片按钮"""
         fileDialog = QFileDialog(self)
         fileDialog.setFileMode(QFileDialog.ExistingFiles)
@@ -199,23 +200,23 @@ class ProjectCard(SimpleCardWidget):
                 if len(selectedFiles)>0:
                     if len(selectedFiles) > 300:
                         selectedFiles = selectedFiles[:300]
-                        self.onImportFinished.emit(1, len(selectedFiles))  # Emit signal with state 1 for limited import
+                        self.importFinished.emit(1, len(selectedFiles),datasetId)  # Emit signal with state 1 for limited import
                     for filePath in selectedFiles:
                         qimage=QImage(filePath)
                         image=ImageData()
-                        image.path = filePath
-                        image.dataset = dataId
+                        image.path = os.path.normpath(filePath)
+                        image.dataset = datasetId
                         image.sizeW=qimage.width()
                         image.sizeH=qimage.height()
                         DO.insert_image(image)
 
-                    self.onImportFinished.emit(2, len(selectedFiles),datasetId=dataId)  # Emit signal with state 2 for successful import
+                    self.importFinished.emit(2, len(selectedFiles),datasetId)  # Emit signal with state 2 for successful import
                 else:
-                    self.onImportFinished.emit(3, 0)
+                    self.importFinished.emit(3, 0,datasetId)
             InfoBar.info("导入图片", "正在导入图片，请稍等...", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
             async_run(importImages)
 
-    def importFinished(self, state: int, count: int,datasetId: int = None):
+    def onImportFinished(self, state: int, count: int,datasetId: int = None):
         if state==1:
             InfoBar.warning("导入图片", "已限制导入图片数量为300张", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
         if state==2:
@@ -223,7 +224,132 @@ class ProjectCard(SimpleCardWidget):
             self.setDatasetProgress(datasetId)  # 更新数据集的标注进度
         if state==3:
             InfoBar.warning("导入图片", "未选择图片", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
-        
+    
+    def onImportLabeledAction(self,dataId,isDir:False):
+        """导入标注数据"""
+        labelFilePath=[]
+        if isDir:
+                # 弹出文件夹选择对话框
+            folder_path = QFileDialog.getExistingDirectory(self, "选择文件夹", "", QFileDialog.ShowDirsOnly)
+            if not folder_path:
+                return []
+            # 使用 pathlib 查找文件
+            folder = Path(folder_path)
+            labelFilePath = list(folder.rglob("*.json"))
+        else:
+            labelFilePath, _ = QFileDialog.getOpenFileNames(self, "选择标注数据文件", "", "JSON Files (*.json)")
+
+        if not labelFilePath:
+            InfoBar.warning("导入标注数据", "未选择标注数据文件", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
+        else:
+            InfoBar.info("导入标注数据", "正在校验标注数据,共"+str(len(labelFilePath))+"份数据", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
+        async_run(lambda: self.checkLabelDatata(labelFilePath, dataId))
+
+    def checkLabelDatata(self, labelFilePath: list, datasetId: int) :
+        """校验标注文件数据，判断对应图片是否存在"""
+        dataset:Dataset = DO.query_dataset(id=datasetId)[0]
+        projectID= dataset.project.id
+
+        decodeErrCount= 0  # 记录无法解析的JSON文件数量
+        contentErrCount= 0  # 记录内容不符合要求的JSON文件数量
+        imgErrCount= 0  # 记录图片不存在的数量
+        successCount= 0  # 记录成功转换的标注文件数量
+        for filePath in labelFilePath:
+            if os.path.exists(filePath) is False:
+                continue
+            
+            data=None
+            with open(filePath, 'r', encoding='utf-8') as f:
+                try:
+                    data = json.load(f)
+                    f.close()
+                except json.JSONDecodeError:
+                    decodeErrCount += 1
+                    print(f"标注文件 {filePath} 无法解析为JSON")
+                    continue
+
+            imageHeight=data.get("imageHeight", 0)
+            imageWidth=data.get("imageWidth", 0)
+            imagePath=data.get("imagePath", "")
+            if imageHeight==0:
+                print(f"标注文件 {filePath} 中的 imageHeight 为0")
+                contentErrCount += 1
+                continue
+            if imageWidth==0:
+                print(f"标注文件 {filePath} 中的 imageWidth 为0")
+                contentErrCount += 1
+                continue
+            if imagePath=="":
+                print(f"标注文件 {filePath} 中的 imagePath 为空")
+                contentErrCount += 1
+                continue
+            # 检查图片是否存在
+            absolutePath=os.path.dirname(filePath)+ "\\"+imagePath
+            normalized_path = os.path.normpath(absolutePath)  # 规范化路径,去掉路径中的"/../"和"//"
+            if not os.path.exists(normalized_path):
+                print(f"图片 {normalized_path} 不存在")
+                imgErrCount += 1
+                continue
+
+            labelStr=transform.transfromToLabels(data.get("shapes",[]),projectID)  # 转换标注数据
+
+            imageData:ImageData = ImageData()
+            imageData.path = normalized_path
+            imageData.dataset = datasetId
+            imageData.sizeW = imageWidth
+            imageData.sizeH = imageHeight
+            imageData.labels = labelStr
+            
+            imageData=DO.insert_image(imageData)  # 插入图片数据
+            if( imageData.id is not None):
+                successCount += 1
+        info = {
+            "decodeErrCount": decodeErrCount,
+            "contentErrCount": contentErrCount,
+            "imgErrCount": imgErrCount,
+            "successCount": successCount,
+            "datasetId": datasetId
+        }
+        self.checkLabeledFinished.emit(info) 
+    def onCheckLabeledFinished(self, info: dict):
+        decodeErrCount = info.get("decodeErrCount", 0)
+        contentErrCount = info.get("contentErrCount", 0)
+        imgErrCount = info.get("imgErrCount", 0)
+        successCount = info.get("successCount", 0)
+        datasetId = info.get("datasetId", 0)
+
+        if decodeErrCount > 0:
+            InfoBar.error("导入标注数据", f"有 {decodeErrCount} 个标注文件无法解析为JSON格式", Qt.Horizontal, isClosable=True, duration=5000, position=InfoBarPosition.TOP, parent=self)
+        if contentErrCount > 0:
+            InfoBar.error("导入标注数据", f"有 {contentErrCount} 个标注文件内容不符合要求", Qt.Horizontal, isClosable=True, duration=5000, position=InfoBarPosition.TOP, parent=self)
+        if imgErrCount > 0:
+            InfoBar.error("导入标注数据", f"有 {imgErrCount} 个标注文件中的图片不存在", Qt.Horizontal, isClosable=True, duration=5000, position=InfoBarPosition.TOP, parent=self)
+        if successCount > 0:
+            InfoBar.success("导入标注数据", f"成功导入 {successCount} 张图片的标注数据", Qt.Horizontal, isClosable=True, duration=5000, position=InfoBarPosition.TOP, parent=self)
+            self.setDatasetProgress(datasetId)
+    
+    def onMoreBtnClicked(self, datasetId: int):
+        """ """
+        menu= RoundMenu("",self)
+        # menu.setAttribute(Qt.WA_DeleteOnClose)
+        delAction= Action(FluentIcon.DELETE, "删除数据集")
+        fileImportAction= Action(FluentIcon.FOLDER_ADD, "导入标注数据")
+        dirImportAction= Action(FluentIcon.DICTIONARY_ADD, "导入标注数据")
+        fileImportAction.setToolTip("选择文件")
+        dirImportAction.setToolTip("选择文件夹")
+        menu.addAction(delAction)
+        menu.addAction(fileImportAction)
+        menu.addAction(dirImportAction)
+
+        menu.show()
+        point= QCursor.pos()
+        menu.move(point.x()-170, point.y()-40)
+
+
+        delAction.triggered.connect(lambda: self.onDeleteDatasetBtnClicked(datasetId))
+        fileImportAction.triggered.connect(lambda: self.onImportLabeledAction(dataId=datasetId,isDir=False))
+        dirImportAction.triggered.connect(lambda: self.onImportLabeledAction(dataId=datasetId,isDir=True))
+     
     def addDataItem(self, dataObj: dict):
         """ Add a data item to the data table """
         dataRow = self.dataTable.rowCount()
@@ -263,26 +389,36 @@ class ProjectCard(SimpleCardWidget):
 
         btnWidget= QWidget()
         importBtn= HyperlinkButton()
-        delBtn=HyperlinkButton()
         labelBtn=HyperlinkButton()
+        delBtn=HyperlinkButton()
+        moreBtn= TransparentToolButton(FluentIcon.MORE)
         hBtnLayout = QHBoxLayout(btnWidget)
         importBtn.setText("导入")
-        delBtn.setText("删除")
         labelBtn.setText("标注")
+        delBtn.setText("删除")
+        moreBtn.setToolTip("更多操作")
 
-        delBtn.clicked.connect(lambda: self.onDeleteDatasetBtnClicked(dataId))
         labelBtn.clicked.connect(lambda: self.onLabelDatasetBtnClicked.emit(dataId))
         importBtn.clicked.connect(lambda: self.onImportImageBtnClicked(dataId))
+        delBtn.clicked.connect(lambda:self.onDeleteDatasetBtnClicked(dataId))
+        moreBtn.clicked.connect(lambda: self.onMoreBtnClicked(dataId))
 
         hBtnLayout.addWidget(importBtn)
         hBtnLayout.addWidget(labelBtn)
         hBtnLayout.addWidget(delBtn)
+        hBtnLayout.addWidget(moreBtn)
 
         hBtnLayout.setSpacing(0)
         hBtnLayout.setContentsMargins(0, 0, 0, 0)
         self.dataTable.setCellWidget(dataRow, 6, btnWidget)
 
         self.setDatasetProgress(dataId)
+
+
+        if gData.isDebug:
+            delBtn.hide()
+        else:
+            moreBtn.hide()
 
     #设置数据集的标注进度
     def setDatasetProgress(self, dataId: int):
@@ -316,7 +452,6 @@ class ProjectCard(SimpleCardWidget):
                 "date": dataset.created_at.strftime("%Y-%m-%d")
             }
             self.addDataItem(dataObj)
-
 class ProgressWidget(QWidget):
     """ Progress Widget for displaying progress bars """
     def __init__(self, parent=None):
@@ -349,3 +484,5 @@ class ProgressWidget(QWidget):
         else:
             self.progressBar.setValue(0)
             self.progressLbl.setText("0%")
+
+

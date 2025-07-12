@@ -1,4 +1,5 @@
 import json,os
+from Transform.TransformBase import TransformBase
 
 class GlobalData:
     def __init__(self):
@@ -31,6 +32,7 @@ class GlobalData:
 
         self.models=['yolo','rtdetr']
         self.weights=['yolo11l.pt','rtdetr-l.pt','yolo11l-seg.pt']
+        self.isDebug=False
 
         self.loadJson()
 
@@ -48,6 +50,7 @@ class GlobalData:
             'errorLogDir':self.errorLogDir,
             'models':self.models,
             'weights':self.weights,
+            'isDebug':self.isDebug
         }
         with open('config.json','w') as f:
             json.dump(data,f,indent=4)
@@ -70,5 +73,7 @@ class GlobalData:
                 self.errorLogDir=data.get('errorLogDir', self.errorLogDir)
                 self.models=data.get('models',self.models)
                 self.weights=data.get('weights',self.weights)
+                self.isDebug=data.get('isDebug',False)
 
 gData=GlobalData()
+transform= TransformBase()

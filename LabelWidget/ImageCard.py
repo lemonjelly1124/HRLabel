@@ -6,6 +6,7 @@ from qfluentwidgets import (PushButton,PrimaryPushButton,FluentIcon,ToolButton,T
 from Database.BaseModel import *
 from Database.DataOperate import DataOperate as DO
 from pathlib import Path
+import os
 class ImageCard(HeaderCardWidget):
     onImageClicked = Signal(int)
     def __init__(self, parent=None):
@@ -142,7 +143,7 @@ class ImageItem(QWidget):
         self.stuatsIcon=InfoIconWidget(labelStatus)
         self.nameLbl=BodyLabel()
 
-        self.nameLbl.setText(imgPath.split("/")[-1])
+        self.nameLbl.setText(os.path.normpath(imgPath).split("\\")[-1])
 
         self.hLayout.addWidget(self.stuatsIcon)
         self.hLayout.addWidget(self.nameLbl)

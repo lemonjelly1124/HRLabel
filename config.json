@@ -39,9 +39,9 @@
         "exe_path": "D:\\AIProgram\\AiDetect.exe",
         "working_directory": "D:\\AIProgram",
         "model": "yolo",
-        "weights": "yolo11l.pt",
+        "weights": "yolo11n.pt",
         "data": "\u6570\u636e\u96c6.yaml",
-        "epochs": 100,
+        "epochs": 200,
         "batch_size": 4,
         "workers": 4,
         "project": "train",
@@ -58,5 +58,6 @@
         "yolo11l.pt",
         "rtdetr-l.pt",
         "yolo11l-seg.pt"
-    ]
+    ],
+    "isDebug":true
 }

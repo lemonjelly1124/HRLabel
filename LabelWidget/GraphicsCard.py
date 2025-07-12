@@ -101,6 +101,7 @@ class GraphicsCard(HeaderCardWidget):
 
     def onItemRemoved(self, item: QGraphicsItem):
         self.scene.tempItem=None
+        self.enableImageDrag()
 
     def onItemFinished(self,item):
         # if isinstance(item, LabelPolygonItem):
@@ -309,10 +310,10 @@ class GraphicsCard(HeaderCardWidget):
                 self.onNextImage.emit(self.currImgID)
         elif event.key() == Qt.Key_T:
             print(self.scene.isEdit)
-            items=self.scene.items()
-            for item in items:
-                if isinstance(item, (LabelRectItem)):
-                    print("矩形形区域：", item.rect())
+            # items=self.scene.items()
+            # for item in items:
+            #     if isinstance(item, (LabelRectItem)):
+            #         print("矩形形区域：", item.rect())
         elif event.key() == Qt.Key_Control:
             isEditing=False
             selectItems=self.scene.selectedItems()
@@ -428,6 +429,7 @@ class LabelMenu(RoundMenu):
         super().__init__(title, parent) 
         self.dataset_id = dataset_id
 
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)  # 确保关闭时删除菜单
 
     def showMenu(self, pos: QPointF):
         """ 显示菜单 """

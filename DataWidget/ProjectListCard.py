@@ -9,8 +9,8 @@ from Database.BaseModel import *
 
 class ProjectListCard(SimpleCardWidget):
     """ Project List Card Widget """
-    onProjectItemClicked=Signal(int)
-    onHideProjectCard=Signal()
+    projectItemClicked=Signal(int)
+    hideProjectCard=Signal()
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -40,7 +40,7 @@ class ProjectListCard(SimpleCardWidget):
         """ Add a project item to the project list """
         listItem= QListWidgetItem()
         projectItem= ProjectItem(name, id, self)
-        projectItem.onItemClicked.connect(self.onProjectItemClicked)
+        projectItem.onItemClicked.connect(self.projectItemClicked)
         listItem.setSizeHint(projectItem.sizeHint())  # Set height to 60px
         self.projectListWidget.addItem(listItem)
         self.projectListWidget.setItemWidget(listItem,projectItem)
@@ -72,7 +72,7 @@ class ProjectListCard(SimpleCardWidget):
             projectItem:ProjectItem = self.projectListWidget.itemWidget(item)
             if projectItem.id == id:
                 self.projectListWidget.takeItem(i)
-                self.onHideProjectCard.emit()
+                self.hideProjectCard.emit()
                 break    
     
     def onAddProjectBtnClicked(self):
