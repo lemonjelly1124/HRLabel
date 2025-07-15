@@ -11,7 +11,6 @@ class ParameterCard(HeaderCardWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle("参数设置")
-        self.setFixedWidth(280)
         self.headerLayout.setContentsMargins(12,0,6,0)
         self.viewLayout.setContentsMargins(6,6,6,6)
         self.headerView.setFixedHeight(28)

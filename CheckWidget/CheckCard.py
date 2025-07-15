@@ -1,11 +1,11 @@
 from PySide6.QtCore import Qt,Signal,QRectF,QPointF
 from PySide6.QtGui import QImage,QColor,QCursor,QPainter,QFont
-from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget,QHBoxLayout,QSpacerItem,QSizePolicy,QListWidgetItem,QGraphicsItem
+from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget,QHBoxLayout,QSpacerItem,QSizePolicy,QListWidgetItem,QGraphicsItem,QGraphicsTextItem
 import os,ast
-from hrfluentwidgets import (GraphicsView,GraphicsRectItem,GraphicsItemScene,GraphicsPolygonItem,GraphicsCaliperRectItem,GraphicsRotatedRectItem,GraphicsCaliperRotatedRectItem)
+from hrfluentwidgets import (GraphicsView,GraphicsRectItem,GraphicsItemScene,GraphicsPolygonItem)
 from Database.BaseModel import *
 from Database.DataOperate import DataOperate as DO
-from qfluentwidgets import ToggleButton,HeaderCardWidget,TransparentTogglePushButton,TransparentPushButton,RoundMenu, Action,ListWidget,BodyLabel,InfoBar,InfoBarPosition,PrimaryToolButton
+from qfluentwidgets import ToggleButton,HeaderCardWidget,TransparentTogglePushButton,TransparentPushButton,RoundMenu, Action,ListWidget,BodyLabel,InfoBar,InfoBarPosition,PrimaryToolButton,SwitchButton
 from qfluentwidgets import FluentIcon as FIF
 from HRVision.utils.tools import delay_execute
 class CheckCard(HeaderCardWidget):
@@ -25,20 +25,105 @@ class CheckCard(HeaderCardWidget):
         self.graphicsScene=GraphicsItemScene(self.graphicsView)
         self.graphicsView.setScene(self.graphicsScene)
         self.graphicsView.setDragMode(GraphicsView.ScrollHandDrag)
-
+        
+        self.outlineLbl=BodyLabel("显示轮廓")
+        self.outlineBtn=SwitchButton()
         self.leftBtn=PrimaryToolButton(FIF.LEFT_ARROW)
         self.rightBtn=PrimaryToolButton(FIF.RIGHT_ARROW)
 
-        self.leftBtn.setFixedHeight(80)
-        self.rightBtn.setFixedHeight(80)
+        self.outlineBtn.setOnText("显示")
+        self.outlineBtn.setOffText("隐藏")
+        self.outlineBtn.setChecked(True)
 
-        self.viewLayout.addWidget(self.leftBtn)
-        self.viewLayout.addWidget(self.graphicsView)
-        self.viewLayout.addWidget(self.rightBtn)
+        self.vLayout=QVBoxLayout()
+        self.hToolLayout=QHBoxLayout()
+        self.hViewLayout=QHBoxLayout()
+
+        self.hToolLayout.addWidget(self.leftBtn)
+        self.hToolLayout.addWidget(self.outlineLbl)
+        self.hToolLayout.addWidget(self.outlineBtn)
+        self.hToolLayout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
+        self.hToolLayout.addWidget(self.rightBtn)
+        self.hViewLayout.addWidget(self.graphicsView)
+
+        self.vLayout.addLayout(self.hToolLayout)
+        self.vLayout.addLayout(self.hViewLayout)
+        self.viewLayout.addLayout(self.vLayout)
+
     def __initConnect__(self):
         """ Initialize the connections """
         self.leftBtn.clicked.connect(self.onLeftBtnClicked)
         self.rightBtn.clicked.connect(self.onRightBtnClicked)
+        self.outlineBtn.checkedChanged.connect(self.onOutlineBtnClicked)
+
+    def setGraphicsTextItem(self,w,h,gray,score,ngArr,isNg):
+        sceneH= self.graphicsScene.height()
+        size=sceneH/750
+        self.ngItem=QGraphicsTextItem("NG")
+        self.ngArrItem= QGraphicsTextItem("")
+        self.wItem= QGraphicsTextItem("宽度:")
+        self.hItem= QGraphicsTextItem("长度:")
+        self.grayItem= QGraphicsTextItem("灰度:")
+        self.scoreItem= QGraphicsTextItem("分数:")
+
+        self.ngItem.setFont(QFont("Arial", size*20, QFont.Weight.Bold))
+        self.ngItem.setPos(size*10, size*10)
+
+        self.ngArrItem.setFont(QFont("Arial", size*16, QFont.Weight.Bold))
+        self.ngArrItem.setPos(size*10, size*40)
+        self.wItem.setFont(QFont("Arial", size*16, QFont.Weight.Bold))
+        self.wItem.setPos(size*10, size*70)
+        self.hItem.setFont(QFont("Arial", size*16, QFont.Weight.Bold))
+        self.hItem.setPos(size*10, size*100)
+        self.grayItem.setFont(QFont("Arial", size*16, QFont.Weight.Bold))
+        self.grayItem.setPos(size*10, size*130)
+        self.scoreItem.setFont(QFont("Arial", size*16, QFont.Weight.Bold))
+        self.scoreItem.setPos(size*10, size*160)
+
+        self.graphicsScene.addItem(self.ngItem)
+        self.graphicsScene.addItem(self.ngArrItem)
+        self.graphicsScene.addItem(self.wItem)
+        self.graphicsScene.addItem(self.hItem)
+        self.graphicsScene.addItem(self.grayItem)
+        self.graphicsScene.addItem(self.scoreItem)
+
+        if isNg:
+            self.ngItem.setPlainText("NG")
+            self.ngItem.setDefaultTextColor(QColor("#ff0000"))
+        else:
+            self.ngItem.setPlainText("OK")
+            self.ngItem.setDefaultTextColor(QColor("#00ff00"))
+        
+        if ngArr is not None:
+            ngStr=''
+            for i in ngArr:
+                ngStr+=i+","
+            self.ngArrItem.setPlainText("NG项:"+ngStr[:-1])
+            self.ngArrItem.setDefaultTextColor(QColor("#ff0000"))
+
+        if w is not None:
+            self.wItem.setPlainText(f"宽度: {w:.2f} um")
+            self.wItem.setDefaultTextColor(QColor("#36e1ff"))
+        else:
+            self.wItem.setVisible(False)
+
+        if h is not None:
+            self.hItem.setPlainText(f"长度: {h:.2f} um")
+            self.hItem.setDefaultTextColor(QColor("#36e1ff"))
+        else:
+            self.hItem.setVisible(False)
+        
+        if gray is not None:
+            self.grayItem.setPlainText(f"灰度: {gray:.2f}")
+            self.grayItem.setDefaultTextColor(QColor("#36e1ff"))
+        else:
+            self.grayItem.setVisible(False)
+
+        if score is not None:
+            self.scoreItem.setPlainText(f"分数: {score:.2f}")
+            self.scoreItem.setDefaultTextColor(QColor("#36e1ff"))
+        else:
+            self.scoreItem.setVisible(False)
 
     def onLeftBtnClicked(self):
         """ 点击左按钮 """
@@ -55,6 +140,13 @@ class CheckCard(HeaderCardWidget):
             self.rightBtn.setEnabled(True)
         delay_execute(btnEnable,0.5)
 
+    def onOutlineBtnClicked(self, checked:bool):
+        """ 点击轮廓按钮 """
+        items= self.graphicsScene.items()
+        for item in items:
+            if isinstance(item, (GraphicsRectItem, GraphicsPolygonItem, ScoreRectItem, ScorePolygonItem)):
+                item.setVisible(checked)
+        self.graphicsScene.update()
     def setImage(self,path:str):
         """ Set the image for the card """
         self.graphicsScene.clearOthers()
@@ -66,11 +158,11 @@ class CheckCard(HeaderCardWidget):
             if 'mask' in item and item['mask'] is None:
                 rect=item["rect"]
                 rectItem=ScoreRectItem()
-     
                 rectItem.setRect(QRectF(rect['x'],rect['y'],rect['width'],rect['height']))
                 rectItem.setScore(item["classScore"])
                 rectItem.className=item["className"]
                 self.graphicsScene.addItem(rectItem)
+                rectItem.setVisible(self.outlineBtn.isChecked())
             elif item['mask'] is not None:
                 rect=item["rect"]
                 polygon=ScorePolygonItem()
@@ -82,6 +174,7 @@ class CheckCard(HeaderCardWidget):
                 polygon.setScore(item["classScore"])
                 self.className=item["className"]
                 self.graphicsScene.addItem(polygon)
+                polygon.setVisible(self.outlineBtn.isChecked())
     
 class ScoreRectItem(GraphicsRectItem):
     def __init__(self, parent=None):

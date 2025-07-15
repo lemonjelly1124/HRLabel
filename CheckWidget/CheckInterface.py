@@ -13,6 +13,7 @@ from HRVision.Controller.ProcessQt import ndarray_to_qimage,qimage_to_ndarray
 from HRVision.utils.tools import delay_execute,async_run
 from GlobalData import gData
 import time
+from .MeasureWidget import MeasureWidget
 class CheckInterface(QWidget):
     """ Check Interface Widget """
     def __init__(self, parent=None):
@@ -29,15 +30,24 @@ class CheckInterface(QWidget):
     def __initWidget__(self):
         """ Initialize the widget layout """
         self.hLayout = QHBoxLayout(self)
-        self.vLayout = QVBoxLayout()
+        self.vLeftLayout = QVBoxLayout()
+        self.vRightLayout = QVBoxLayout()
         self.checkCard = CheckCard()
         self.parameterCard = ParameterCard()
+        self.measureWidget = MeasureWidget()
         self.imageListCard = ImageListCard()
 
-        self.vLayout.addWidget(self.checkCard)
-        self.vLayout.addWidget(self.imageListCard)
-        self.hLayout.addLayout(self.vLayout)
-        self.hLayout.addWidget(self.parameterCard)
+        self.parameterCard.setFixedWidth(280)
+        self.measureWidget.setFixedWidth(280)
+
+
+        self.vLeftLayout.addWidget(self.checkCard)
+        self.vLeftLayout.addWidget(self.imageListCard)
+        self.vRightLayout.addWidget(self.parameterCard)
+        self.vRightLayout.addWidget(self.measureWidget)
+
+        self.hLayout.addLayout(self.vLeftLayout)
+        self.hLayout.addLayout(self.vRightLayout)
     
     def __initConnect__(self):
         """ Initialize the connections """
@@ -102,15 +112,15 @@ class CheckInterface(QWidget):
             success = self.client.execute(process_socket, timeOut=1000)
 
             if success:
-                # print("Output ", process_socket.outputJson)
                 self.checkCard.setResult(process_socket.outputJson['result'])
-
-                # with open('outputJson.json', 'w', encoding='utf-8') as json_file:
-                    # json.dump(process_socket.outputJson, json_file, ensure_ascii=False, indent=4)
+                if self.measureWidget.ccd3Switch.isChecked():
+                    w,h,gray,score,ngArr,isNg= self.measureWidget.CCD3Measure(image, process_socket.outputJson['result'])
+                    print(f"宽度: {w}, 长度: {h}, 灰度: {gray}, 分数: {score}, NG项: {ngArr}, 是否NG: {isNg}")
+                    self.checkCard.setGraphicsTextItem(w, h, gray, score, ngArr, isNg)
             else:
-                print("Process execution failed or timed out.")
+                InfoBar.error("模型测试","模型计算超时",Qt.Horizontal,True,2500,InfoBarPosition.TOP,self.window())
         except Exception as e:
-            print(f"An error occurred: {e}")
+            InfoBar.error("模型测试",f"模型计算异常: {str(e)}",Qt.Horizontal,True,2500,InfoBarPosition.TOP,self.window())
         finally:
             pass
 

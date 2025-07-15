@@ -33,7 +33,7 @@ class TrainDialog(MessageBoxBase):
         self.cmbWeights.addItems(gData.weights)
         self.cmbWeights.setCurrentIndex(0)
 
-        self.spnEpochs.setRange(1,200)
+        self.spnEpochs.setRange(1,1000)
         self.spnBatchSize.setRange(1,128)
         self.spnWorkers.setRange(1,8)
 

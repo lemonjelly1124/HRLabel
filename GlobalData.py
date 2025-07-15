@@ -26,6 +26,18 @@ class GlobalData:
             'exist_ok':True
         }
 
+        self.CCD3Measure={
+            'minW':0.01,
+            'maxW':0.1,
+            'minH':0.01,
+            'maxH':0.1,
+            'minGray':0,
+            'maxGray':255,
+            'camPixel':0.00345,
+            'score':0.5,
+            'isNGAll':False,
+        }
+
         self.datasetPath='D:/AIProgram/dataset'
         self.errorLogDir='D:/AIProgram/errorlog'
         self.trainDir='D:/AIProgram/train'
@@ -46,6 +58,7 @@ class GlobalData:
             'env':self.env,
             'splitSize':self.splitSize,
             'watcherConfig':self.watcherConfig,
+            'CCD3Measure':self.CCD3Measure,
             'datasetPath':self.datasetPath,
             'errorLogDir':self.errorLogDir,
             'models':self.models,
@@ -69,6 +82,7 @@ class GlobalData:
                 self.env=data.get('env', self.env)
                 self.splitSize=data.get('splitSize', self.splitSize)
                 self.watcherConfig=data.get('watcherConfig', self.watcherConfig)
+                self.CCD3Measure=data.get('CCD3Measure', self.CCD3Measure)
                 self.datasetPath=data.get('datasetPath', self.datasetPath)
                 self.errorLogDir=data.get('errorLogDir', self.errorLogDir)
                 self.models=data.get('models',self.models)
