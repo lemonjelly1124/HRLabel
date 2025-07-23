@@ -219,6 +219,37 @@ class DataOperate:
         
         query = query.where(*conditions)
         return query.execute()
+    
+    @staticmethod
+    def copy_image(**kwargs):
+        """
+        复制图片数据
+        支持参数:
+        -sdataset_id : 数据集ID
+        -tdataset_id : 目标数据集ID
+        """
+        row=0
+        if 'sdataset_id' in kwargs and 'tdataset_id' in kwargs:
+            source_dataset_id = kwargs['sdataset_id']
+            target_dataset_id = kwargs['tdataset_id']
+
+            sqlStr="""
+                INSERT INTO imagedata (dataset_id, path, sizeW, sizeH, labels)
+                SELECT 
+                    {target_dataset_id} AS dataset_id,
+                    path, 
+                    sizeW, 
+                    sizeH, 
+                    labels
+                FROM imagedata 
+                WHERE dataset_id = {source_dataset_id};
+            """
+            sqlStr = sqlStr.format(source_dataset_id=source_dataset_id, target_dataset_id=target_dataset_id)
+
+            cursor=db.execute_sql(sqlStr)
+            row = cursor.rowcount
+            
+        return row
 
     @staticmethod
     def query_label(**kwargs):

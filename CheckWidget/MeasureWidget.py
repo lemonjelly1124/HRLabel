@@ -32,7 +32,7 @@ class MeasureWidget(HeaderCardWidget):
         self.gLayout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         self.gLayout.setSpacing(7)
 
-        self.ccd3Lbl = BodyLabel("CCD3校验:")
+        self.ccd3Lbl = BodyLabel("熔接痕校验:")
         self.ccd3Switch = SwitchButton()
         self.camPixelLbl= BodyLabel("相机比例:")
         self.camPixelDsp = DoubleSpinBox()
@@ -88,7 +88,7 @@ class MeasureWidget(HeaderCardWidget):
         self.minGrayDsp.setSingleStep(1)
         self.maxGrayDsp.setSingleStep(1)
         self.scoreDsp.setSingleStep(0.01)
-        self.camPixelDsp.setSingleStep(0.000001)
+        self.camPixelDsp.setSingleStep(0.000001) 
 
         self.gLayout.addWidget(self.ccd3Lbl, 0, 0)
         self.gLayout.addWidget(self.ccd3Switch, 0, 1)
@@ -177,15 +177,23 @@ class MeasureWidget(HeaderCardWidget):
         self.saveBtn.setVisible(visible)
 
     def CCD3Measure(self,image:QImage,result:dict):
+        if result is None or len(result) == 0:
+            return None, None, None,None,[], False
         item=result[0]
         if item['mask'] is not None:
-            rect=item["rect"]
-            boundW=rect['width']
-            boundH=rect['height']
-            if boundW> boundH:
-                boundW, boundH = boundH, boundW
-
+            rect= item['rect']
             rectF = QRectF(rect['x'], rect['y'], rect['width'], rect['height'])
+
+            points=[]
+            for point in item['mask']:
+                points.append([point[0],point[1]])
+            np_points = np.array(points, dtype=np.float32)
+
+            # 获取最小外接旋转矩形
+            rectmin = cv2.minAreaRect(np_points)
+            center, (boundW, boundH), angle = rectmin
+            if boundW > boundH:
+                boundW, boundH = boundH, boundW
             
             copyimg=image.copy(rectF.toRect())
             ndcopyimg= qimage_to_ndarray(copyimg)
@@ -200,8 +208,8 @@ class MeasureWidget(HeaderCardWidget):
             isGrayNG = False
             isNG= False
             ngArr=[]
-            realW= boundW * self.camPixelDsp.value()*1000
-            realH= boundH * self.camPixelDsp.value()*1000
+            realW= boundW * self.camPixelDsp.value()
+            realH= boundH * self.camPixelDsp.value()
             if realW < self.minWDsp.value() or realW > self.maxWDsp.value():
                 isWNG = True
                 ngArr.append("宽度")

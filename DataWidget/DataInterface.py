@@ -130,8 +130,9 @@ class DataInterface(QWidget):
             if(self.isTrainSplit):
                 gData.watcherConfig['weights']=gData.weights[2]
 
-            self.prepareImageData()
-
+            isError=self.prepareImageData()
+            if isError:
+                return
             self.startTrain()
 
     def onSaveBtnClicked(self):
@@ -157,6 +158,7 @@ class DataInterface(QWidget):
             return
         
         trainDlg=TrainModelDialog(self.window())
+        trainDlg.yesButton.setText("导出数据集")
         if trainDlg.exec() == MessageBox.Accepted:
             self.isTrainSplit=trainDlg.chkSplit.isChecked()
             self.prepareImageData()
@@ -176,6 +178,8 @@ class DataInterface(QWidget):
         else:
             labelDict=self.createCrackYaml(self.projectCard.projectID)      #key标签,value索引
 
+
+        print(labelDict)
         datasetIDs = []
         for row in range(self.projectCard.dataTable.rowCount()):
             item = self.projectCard.dataTable.item(row, 0)  # 获取第一列的item
@@ -213,7 +217,7 @@ class DataInterface(QWidget):
             os.makedirs(labelsSplitDir)
         
         transform=TransformBase()
-
+        isError=False
         for imageObj in imageArr:
             path=imageObj.path
             imageName=os.path.basename(path)
@@ -223,9 +227,11 @@ class DataInterface(QWidget):
                 continue
             
             if self.isTrainSplit:
-
                 #写入标签数据
-                labelStrArr=transform.transformYoloSplit(imageObj.labels,gData.splitSize,labelDict)
+                labelStrArr,errorInfo=transform.transformYoloSplit(imageObj.labels,gData.splitSize,labelDict)
+                if isError==False and errorInfo.get("error","")!="":
+                    isError=True
+                    InfoBar.error("模型训练", "数据集 "+imageObj.dataset.name+" 数据错误:"+errorInfo["error"]+"\n请检查标注数据", Qt.Horizontal, isClosable=True, duration=120000, position=InfoBarPosition.TOP, parent=self.window()) 
                 for i in range(len(labelStrArr)):
                     with open(labelsSplitDir+imageName.split(".")[0]+"_"+str(i)+".txt", "w") as f:
                         f.write(labelStrArr[i])
@@ -236,11 +242,19 @@ class DataInterface(QWidget):
             else:
                 shutil.copy2(path,imagesDir+imageName)
 
-                labelStr=transform.transformYolo(imageObj.labels,imageObj.sizeW,imageObj.sizeH,labelDict)
+                labelStr,errorInfo=transform.transformYolo(imageObj.labels,imageObj.sizeW,imageObj.sizeH,labelDict)
                 with open(labelsDir+imageName.split(".")[0]+".txt", "w") as f:
                     f.write(labelStr)
+                if isError==False and errorInfo.get("error","")!="":
+                    isError=True
+                    InfoBar.error("模型训练", "数据集 "+imageObj.dataset.name+" 数据错误:"+errorInfo["error"]+"\n请检查标注数据", Qt.Horizontal, isClosable=True, duration=120000, position=InfoBarPosition.TOP, parent=self.window())
 
-        InfoBar.success("模型训练", "数据集初始化完成", Qt.Horizontal, isClosable=True, duration=10000, position=InfoBarPosition.TOP, parent=self.window())
+
+        if isError==False:
+            InfoBar.success("模型训练", "数据集初始化完成", Qt.Horizontal, isClosable=True, duration=10000, position=InfoBarPosition.TOP, parent=self.window())
+
+        return isError
+
     
     def createCrackYaml(self,projectID:int,isSplit=False)->dict:
 
@@ -269,7 +283,7 @@ class DataInterface(QWidget):
             out<<"\""+labelArr[i].name+"\""
             if i!=len(labelArr)-1:
                 out<<","
-            labelDict[str(labelArr[i].id)]=i
+            labelDict[labelArr[i].id]=i
         out<<"]\n"
         file.close()
     

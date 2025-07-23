@@ -29,10 +29,10 @@ class DatasetDialog(MessageBoxBase):
 
         self.gLayout.addWidget(BodyLabel("名称"), 0, 0)
         self.gLayout.addWidget(self.lineName, 0, 1)
-        self.gLayout.addWidget(BodyLabel("描述"), 1, 0)
-        self.gLayout.addWidget(self.lineDesc, 1, 1)
-        self.gLayout.addWidget(BodyLabel("版本"), 2, 0)
-        self.gLayout.addWidget(self.lineVersion, 2, 1)
+        self.gLayout.addWidget(BodyLabel("版本"), 1, 0)
+        self.gLayout.addWidget(self.lineVersion, 1, 1)
+        self.gLayout.addWidget(BodyLabel("描述"), 2, 0)
+        self.gLayout.addWidget(self.lineDesc, 2, 1)
 
         self.viewLayout.addWidget(self.lblTitle, 0, Qt.AlignLeft)
         self.viewLayout.addLayout(self.gLayout)

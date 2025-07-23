@@ -6,7 +6,7 @@ from qfluentwidgets import (PushButton,PrimaryPushButton,FluentIcon,ToolButton,T
 from Database.BaseModel import *
 from Database.DataOperate import DataOperate as DO
 from pathlib import Path
-import os
+import os,ast
 class ImageCard(HeaderCardWidget):
     onImageClicked = Signal(int)
     def __init__(self, parent=None):
@@ -35,7 +35,9 @@ class ImageCard(HeaderCardWidget):
         self.headerLayout.addSpacing(5)
         self.headerLayout.addWidget(InfoIconWidget(InfoBarIcon.ERROR))
         self.headerLayout.addSpacing(3)
-        self.headerLayout.addWidget(BodyLabel("不存在"))
+        self.headerLayout.addWidget(BodyLabel("异常"))
+
+        self.datasetID = None
 
     
     def addImageItem(self,imgID:int,imgPath:str,labelStatus:InfoBarIcon=InfoBarIcon.INFORMATION):
@@ -49,19 +51,15 @@ class ImageCard(HeaderCardWidget):
 
     def setImageList(self,datasetID:int):
         """ 设置图片列表 """
+        self.datasetID = datasetID
+
+        labelIDArr = self.getLabelIDArr(datasetID)
         self.imageList.clear()
         images:list[ImageData]=DO.query_image(dataset_id=datasetID)
         for img in images:
-            status = None
-            if img.labels=="[]":
-                status = InfoBarIcon.INFORMATION
-            elif img.labels is None or img.labels=="":
-                status = InfoBarIcon.WARNING
-            else:
-                status = InfoBarIcon.SUCCESS
-            imgpath= img.path
-            
-            if not Path(imgpath).exists():
+            status = self.checkLabelItems(img.labels,labelIDArr)
+
+            if not Path(img.path).exists():
                 status = InfoBarIcon.ERROR
 
             self.addImageItem(img.id, img.path, status)
@@ -74,6 +72,7 @@ class ImageCard(HeaderCardWidget):
     
     def refreshImageStatus(self,imgID:int):
         """ 刷新当前选中的图片 """
+        labelIDArr = self.getLabelIDArr(self.datasetID)
         for i in range(self.imageList.count()):
             item = self.imageList.item(i)
             imgItem:ImageItem = self.imageList.itemWidget(item)
@@ -81,12 +80,7 @@ class ImageCard(HeaderCardWidget):
                 item = self.imageList.item(i)
                 imgItem:ImageItem = self.imageList.itemWidget(item)
                 imgData:ImageData = DO.query_image(id=imgItem.imgID)[0]
-                if imgData.labels == "[]":
-                    imgItem.stuatsIcon.icon= InfoBarIcon.INFORMATION
-                elif imgData.labels is None or imgData.labels == "":
-                    imgItem.stuatsIcon.icon = InfoBarIcon.WARNING
-                else:
-                    imgItem.stuatsIcon.icon = InfoBarIcon.SUCCESS
+                imgItem.stuatsIcon.icon=self.checkLabelItems(imgData.labels,labelIDArr)
 
     def onNextImage(self,currImgID):
         for i in range(self.imageList.count()):
@@ -129,6 +123,36 @@ class ImageCard(HeaderCardWidget):
                     nextImgItem.onImageClicked.emit(nextImgItem.imgID)
                     self.imageList.setCurrentRow(nextIndex)
                 break
+
+    
+    def checkLabelItems(self,labelStr:str,labelIDArr:list[str]):
+        """ 校验标签字符串 """
+        status = None
+        if labelStr=="[]":
+            status = InfoBarIcon.INFORMATION
+        elif labelStr is None or labelStr=="":
+            status = InfoBarIcon.WARNING
+        else:
+            status = InfoBarIcon.SUCCESS
+            if labelIDArr is not None:
+                itemArr=ast.literal_eval(labelStr)
+                for item in itemArr:
+                    labelID = item.get("label_id", None)
+                    print(f"labelID:{labelID},labelIDArr:{labelIDArr}")
+                    if labelID is None or labelID not in labelIDArr:
+                        status = InfoBarIcon.ERROR
+                        break
+        return status
+    
+    def getLabelIDArr(self,datasetID:int):
+        """ 获取当前数据集的标签ID列表 """
+        dataset= Dataset.get(Dataset.id == datasetID)
+        project_id = dataset.project.id
+
+        labels=DO.query_label(project_id=project_id)
+
+        labelIDArr = [label.id for label in labels]
+        return labelIDArr
 
 
 class ImageItem(QWidget):

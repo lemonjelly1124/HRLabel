@@ -102,13 +102,13 @@ class CheckCard(HeaderCardWidget):
             self.ngArrItem.setDefaultTextColor(QColor("#ff0000"))
 
         if w is not None:
-            self.wItem.setPlainText(f"宽度: {w:.2f} um")
+            self.wItem.setPlainText(f"宽度: {w:.4f} mm")
             self.wItem.setDefaultTextColor(QColor("#36e1ff"))
         else:
             self.wItem.setVisible(False)
 
         if h is not None:
-            self.hItem.setPlainText(f"长度: {h:.2f} um")
+            self.hItem.setPlainText(f"长度: {h:.4f} mm")
             self.hItem.setDefaultTextColor(QColor("#36e1ff"))
         else:
             self.hItem.setVisible(False)

@@ -19,13 +19,14 @@ class TransformBase:
         """
         转换为yolo格式
         """
+        errorInfo:dict={}
+
         if(width<0):
             width=-width
         if(height<0):
             height=-height
 
         labelArr=self.labelToDict(labelStr)
-
         labelStr=""
         for labelObj in labelArr:
             if labelObj["type"]=="LabelRectItem":
@@ -39,8 +40,10 @@ class TransformBase:
                     w=-w
                 if h<0:
                     h=-h
-
-                labelStr=labelStr+str(labelDict[str(labelObj["label_id"])])+" "+str(centerX)+" "+str(centerY)+" "+str(w)+" "+str(h)+"\n"
+                if labelObj["label_id"] in labelDict.keys():
+                    labelStr=labelStr+str(labelDict[labelObj["label_id"]])+" "+str(centerX)+" "+str(centerY)+" "+str(w)+" "+str(h)+"\n"
+                else:
+                    errorInfo["error"]="label_id not found in labelDict"
             elif labelObj["type"]=="LabelPolygonItem":
                 polygonParts = labelObj["polygon"].split(",")
                 polygon = [QPointF(float(polygonParts[i]), float(polygonParts[i + 1])) for i in range(0, len(polygonParts), 2)]
@@ -49,9 +52,12 @@ class TransformBase:
                 for point in polygon:
                     polygonStr+=str(round(point.x()/width,6))+" "+str(round(point.y()/height,6))+" "
                 polygonStr=polygonStr[:-1]
-                labelStr=labelStr+str(labelDict[str(labelObj["label_id"])])+" "+polygonStr+"\n"
+                if labelObj["label_id"] in labelDict.keys():
+                    labelStr=labelStr+str(labelDict[labelObj["label_id"]])+" "+polygonStr+"\n"
+                else:
+                    errorInfo["error"]="label_id not found in labelDict"
         
-        return labelStr
+        return labelStr,errorInfo
 
     def splitImage(self,imagePath:str,labelStr:str,splitSize:int)->list[QImage]:
         """
@@ -83,8 +89,10 @@ class TransformBase:
     
     def transformYoloSplit(self,labelStr:str,splitSize:int,labelDict:dict)->list[str]:
         """
-        转换为rtdetr格式
+        转换为分割图格式
         """
+        errorInfo:dict={}
+
         labelStrArr:list[str]=[]
         labelArr=self.labelToDict(labelStr)
         for i,labelObj in enumerate(labelArr):
@@ -101,8 +109,11 @@ class TransformBase:
                     polygonStr+=str(round((point.x()-leftTop.x())/splitSize,6))+" "+str(round((point.y()-leftTop.y())/splitSize,6))+" "
                 polygonStr=polygonStr[:-1]
 
-                labelStr=str(labelDict[str(labelObj["label_id"])])+" "+polygonStr+"\n"
-                labelStrArr.append(labelStr)
+                if labelObj["label_id"] in labelDict.keys():
+                    labelStr=str(labelDict[labelObj["label_id"]])+" "+polygonStr+"\n"
+                    labelStrArr.append(labelStr)
+                else:
+                    errorInfo["error"]="label_id not found in labelDict"
             elif labelObj["type"]=="LabelRectItem":
                 rectParts=labelObj["rect"].split(",")
                 rect = QRectF(float(rectParts[0]), float(rectParts[1]), float(rectParts[2]), float(rectParts[3]))
@@ -110,11 +121,13 @@ class TransformBase:
                 leftTop=QPointF(center.x()-splitSize/2,center.y()-splitSize/2)
                 rectStr=str(round((center.x()-leftTop.x())/splitSize,6))+" "+str(round((center.y()-leftTop.y())/splitSize,6))+" "+str(round(rect.width()/splitSize,6))+" "+str(round(rect.height()/splitSize,6))+"\n"
 
-                
-                labelStr=str(labelDict[str(labelObj["label_id"])])+" "+rectStr
-                labelStrArr.append(labelStr)
+                if labelObj["label_id"] in labelDict.keys():
+                    labelStr=str(labelDict[labelObj["label_id"]])+" "+rectStr
+                    labelStrArr.append(labelStr)
+                else:
+                    errorInfo["error"]="label_id not found in labelDict"
 
-        return labelStrArr
+        return labelStrArr,errorInfo
     
     def transfromToLabels(self,originArr:dict,projectID:str)->str:
         """

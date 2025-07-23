@@ -462,7 +462,7 @@ class LabelMenu(RoundMenu):
         def handleKeyPress(index:int):
             actions = self.actions()
             if actions and 0 <= index < len(actions):
-                print("触发动作：", actions[index].text())
+                # print("触发动作：", actions[index].text())
                 actions[index].triggered.connect(lambda: QTimer.singleShot(100, self.close))
                 actions[index].trigger()
         """ 处理键盘按键事件 """

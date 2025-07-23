@@ -162,7 +162,7 @@ class ProjectCard(SimpleCardWidget):
             else:
                 InfoBar.error("添加数据集", "添加数据集失败", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
     
-    def onDeleteDatasetBtnClicked(self, dataId: int):
+    def onDelActionTriggered(self, dataId: int):
         datasetNmae= ""
         datasetVersion= ""
         for i in range(self.dataTable.rowCount()):
@@ -225,6 +225,34 @@ class ProjectCard(SimpleCardWidget):
         if state==3:
             InfoBar.warning("导入图片", "未选择图片", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
     
+    def onCopyActionTriggered(self, datasetId: int):
+        """点击复制数据集按钮"""
+        dialog = DatasetDialog(self.window())
+        dialog.lblTitle.setText("复制数据集")
+        if dialog.exec():
+            dataset=Dataset()
+            dataset.name = dialog.lineName.text()
+            dataset.description = dialog.lineDesc.text()
+            dataset.version = dialog.lineVersion.text()
+            dataset.project = self.projectID
+            datasetNew:Dataset = DO.insert_dataset(dataset)
+            if( datasetNew.id is not None):
+                dataObj={
+                    "id": datasetNew.id,
+                    "name": datasetNew.name,
+                    "version": datasetNew.version,
+                    "description": datasetNew.description,
+                    "date": datasetNew.created_at.strftime("%Y-%m-%d")
+                }
+                self.addDataItem(dataObj)
+
+                copiedRow=DO.copy_image(sdataset_id=datasetId, tdataset_id=datasetNew.id)  # 复制图片数据到新数据集
+                InfoBar.success("复制数据集", "复制数据集成功,共复制" + str(copiedRow) + "张图片", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
+                self.setDatasetProgress(dataId=datasetNew.id)  # 更新新数据集的标注进度
+            else:
+                InfoBar.error("复制数据集", "复制数据集失败", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
+
+    
     def onImportLabeledAction(self,dataId,isDir:False):
         """导入标注数据"""
         labelFilePath=[]
@@ -265,22 +293,22 @@ class ProjectCard(SimpleCardWidget):
                     f.close()
                 except json.JSONDecodeError:
                     decodeErrCount += 1
-                    print(f"标注文件 {filePath} 无法解析为JSON")
+                    # print(f"标注文件 {filePath} 无法解析为JSON")
                     continue
 
             imageHeight=data.get("imageHeight", 0)
             imageWidth=data.get("imageWidth", 0)
             imagePath=data.get("imagePath", "")
             if imageHeight==0:
-                print(f"标注文件 {filePath} 中的 imageHeight 为0")
+                # print(f"标注文件 {filePath} 中的 imageHeight 为0")
                 contentErrCount += 1
                 continue
             if imageWidth==0:
-                print(f"标注文件 {filePath} 中的 imageWidth 为0")
+                # print(f"标注文件 {filePath} 中的 imageWidth 为0")
                 contentErrCount += 1
                 continue
             if imagePath=="":
-                print(f"标注文件 {filePath} 中的 imagePath 为空")
+                # print(f"标注文件 {filePath} 中的 imagePath 为空")
                 contentErrCount += 1
                 continue
             # 检查图片是否存在
@@ -311,6 +339,7 @@ class ProjectCard(SimpleCardWidget):
             "datasetId": datasetId
         }
         self.checkLabeledFinished.emit(info) 
+
     def onCheckLabeledFinished(self, info: dict):
         decodeErrCount = info.get("decodeErrCount", 0)
         contentErrCount = info.get("contentErrCount", 0)
@@ -333,20 +362,24 @@ class ProjectCard(SimpleCardWidget):
         menu= RoundMenu("",self)
         # menu.setAttribute(Qt.WA_DeleteOnClose)
         delAction= Action(FluentIcon.DELETE, "删除数据集")
+        copyAction= Action(FluentIcon.COPY, "复制数据集")
         fileImportAction= Action(FluentIcon.FOLDER_ADD, "导入标注数据")
         dirImportAction= Action(FluentIcon.DICTIONARY_ADD, "导入标注数据")
         fileImportAction.setToolTip("选择文件")
         dirImportAction.setToolTip("选择文件夹")
+
         menu.addAction(delAction)
-        menu.addAction(fileImportAction)
-        menu.addAction(dirImportAction)
+        menu.addAction(copyAction)
+        if gData.isDebug:
+            menu.addAction(fileImportAction)
+            menu.addAction(dirImportAction)
 
         menu.show()
         point= QCursor.pos()
         menu.move(point.x()-170, point.y()-40)
 
-
-        delAction.triggered.connect(lambda: self.onDeleteDatasetBtnClicked(datasetId))
+        delAction.triggered.connect(lambda: self.onDelActionTriggered(datasetId))
+        copyAction.triggered.connect(lambda: self.onCopyActionTriggered(datasetId)) 
         fileImportAction.triggered.connect(lambda: self.onImportLabeledAction(dataId=datasetId,isDir=False))
         dirImportAction.triggered.connect(lambda: self.onImportLabeledAction(dataId=datasetId,isDir=True))
      
@@ -390,22 +423,18 @@ class ProjectCard(SimpleCardWidget):
         btnWidget= QWidget()
         importBtn= HyperlinkButton()
         labelBtn=HyperlinkButton()
-        delBtn=HyperlinkButton()
         moreBtn= TransparentToolButton(FluentIcon.MORE)
         hBtnLayout = QHBoxLayout(btnWidget)
         importBtn.setText("导入")
         labelBtn.setText("标注")
-        delBtn.setText("删除")
         moreBtn.setToolTip("更多操作")
 
         labelBtn.clicked.connect(lambda: self.onLabelDatasetBtnClicked.emit(dataId))
         importBtn.clicked.connect(lambda: self.onImportImageBtnClicked(dataId))
-        delBtn.clicked.connect(lambda:self.onDeleteDatasetBtnClicked(dataId))
         moreBtn.clicked.connect(lambda: self.onMoreBtnClicked(dataId))
 
         hBtnLayout.addWidget(importBtn)
         hBtnLayout.addWidget(labelBtn)
-        hBtnLayout.addWidget(delBtn)
         hBtnLayout.addWidget(moreBtn)
 
         hBtnLayout.setSpacing(0)
@@ -414,13 +443,7 @@ class ProjectCard(SimpleCardWidget):
 
         self.setDatasetProgress(dataId)
 
-
-        if gData.isDebug:
-            delBtn.hide()
-        else:
-            moreBtn.hide()
-
-    #设置数据集的标注进度
+    #刷新数据集的标注进度
     def setDatasetProgress(self, dataId: int):
         images:list[ImageData]=DO.query_image(dataset_id=dataId)
         labeledCount = sum(1 for img in images if img.labels is not None)

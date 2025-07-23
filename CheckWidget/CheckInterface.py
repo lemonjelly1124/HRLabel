@@ -113,16 +113,18 @@ class CheckInterface(QWidget):
 
             if success:
                 self.checkCard.setResult(process_socket.outputJson['result'])
-                if self.measureWidget.ccd3Switch.isChecked():
-                    w,h,gray,score,ngArr,isNg= self.measureWidget.CCD3Measure(image, process_socket.outputJson['result'])
-                    print(f"宽度: {w}, 长度: {h}, 灰度: {gray}, 分数: {score}, NG项: {ngArr}, 是否NG: {isNg}")
-                    self.checkCard.setGraphicsTextItem(w, h, gray, score, ngArr, isNg)
+                
             else:
                 InfoBar.error("模型测试","模型计算超时",Qt.Horizontal,True,2500,InfoBarPosition.TOP,self.window())
         except Exception as e:
             InfoBar.error("模型测试",f"模型计算异常: {str(e)}",Qt.Horizontal,True,2500,InfoBarPosition.TOP,self.window())
         finally:
             pass
+        
+        if self.measureWidget.ccd3Switch.isChecked():
+            w,h,gray,score,ngArr,isNg= self.measureWidget.CCD3Measure(image, process_socket.outputJson['result'])
+            print(f"宽度: {w}, 长度: {h}, 灰度: {gray}, 分数: {score}, NG项: {ngArr}, 是否NG: {isNg}")
+            self.checkCard.setGraphicsTextItem(w, h, gray, score, ngArr, isNg)
 
 
     
