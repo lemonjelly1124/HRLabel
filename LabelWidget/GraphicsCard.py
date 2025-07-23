@@ -6,7 +6,7 @@ import os,ast
 from hrfluentwidgets import (GraphicsView,GraphicsRectItem,GraphicsItemScene,GraphicsPolygonItem,GraphicsCaliperRectItem,GraphicsRotatedRectItem,GraphicsCaliperRotatedRectItem)
 from Database.BaseModel import *
 from Database.DataOperate import DataOperate as DO
-from qfluentwidgets import ToggleButton,HeaderCardWidget,TransparentTogglePushButton,TransparentPushButton,RoundMenu, Action,ListWidget,BodyLabel,InfoBar,InfoBarPosition
+from qfluentwidgets import ToggleButton,HeaderCardWidget,TransparentTogglePushButton,TransparentPushButton,RoundMenu, Action,ListWidget,BodyLabel,InfoBar,InfoBarPosition,SwitchButton
 from qfluentwidgets import FluentIcon as FIF
 
 class GraphicsCard(HeaderCardWidget):
@@ -30,12 +30,17 @@ class GraphicsCard(HeaderCardWidget):
         self.addRectBtn = TransparentTogglePushButton(FIF.ADD, "添加矩形")
         self.addPolygonBtn = TransparentTogglePushButton(FIF.ADD, "添加多边形")
         self.deleteBtn=TransparentPushButton(FIF.DELETE,"删除图片")
+        self.autoSaveBtn=SwitchButton()
         self.zoomInBtn = TransparentPushButton(FIF.ZOOM_IN,"放大")
         self.zoomOutBtn = TransparentPushButton(FIF.ZOOM_OUT,"缩小")
         self.fitBtn= TransparentPushButton(FIF.FIT_PAGE,"自适应")
         self.moveBtn = TransparentTogglePushButton(FIF.MOVE,"移动视图")
         self.clearBtn=TransparentPushButton(FIF.ERASE_TOOL,"清除标注")
         self.saveBtn=TransparentPushButton(FIF.SAVE,"保存标注")
+
+        self.autoSaveBtn.setOnText("自动保存开")
+        self.autoSaveBtn.setOffText("自动保存关")
+        self.autoSaveBtn.setChecked(True)
 
         self.hToolLayout.addWidget(self.addRectBtn)
         self.hToolLayout.addWidget(self.addPolygonBtn)
@@ -47,6 +52,7 @@ class GraphicsCard(HeaderCardWidget):
         self.hToolLayout.addWidget(self.moveBtn)
         self.hToolLayout.addWidget(self.clearBtn)
         self.hToolLayout.addWidget(self.saveBtn)
+        self.hToolLayout.addWidget(self.autoSaveBtn)
         """ToolBar"""
 
         self.addRectBtn.clicked.connect(self.onRectBtnClicked)
@@ -295,7 +301,8 @@ class GraphicsCard(HeaderCardWidget):
             if self.currImgID is None:
                 InfoBar.warning("操作失败", "请选择一张图片", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
             else:
-                self.saveImageLabel()
+                if self.autoSaveBtn.isChecked():
+                    self.saveImageLabel()
                 self.onPrevImage.emit(self.currImgID)
         elif event.key() == Qt.Key_S:
             if self.currImgID is None:
@@ -306,7 +313,8 @@ class GraphicsCard(HeaderCardWidget):
             if self.currImgID is None:
                 InfoBar.warning("操作失败", "请选择一张图片", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
             else:
-                self.saveImageLabel()
+                if self.autoSaveBtn.isChecked():
+                    self.saveImageLabel()
                 self.onNextImage.emit(self.currImgID)
         elif event.key() == Qt.Key_T:
             print(self.scene.isEdit)
