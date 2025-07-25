@@ -138,7 +138,7 @@ class ImageCard(HeaderCardWidget):
                 itemArr=ast.literal_eval(labelStr)
                 for item in itemArr:
                     labelID = item.get("label_id", None)
-                    print(f"labelID:{labelID},labelIDArr:{labelIDArr}")
+                    # print(f"labelID:{labelID},labelIDArr:{labelIDArr}")
                     if labelID is None or labelID not in labelIDArr:
                         status = InfoBarIcon.ERROR
                         break

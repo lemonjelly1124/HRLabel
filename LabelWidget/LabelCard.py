@@ -96,7 +96,7 @@ class LabelItem(QWidget):
         self.__initWidget__( lblName, color)
         self.__initConnect__()
 
-        print(gData.isDebug)
+        # print(gData.isDebug)
         if not gData.isDebug:
             self.colorBtn.setVisible(False)
 

@@ -4,11 +4,12 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QImage,QPixmap
 
 from qfluentwidgets import (NavigationItemPosition, MessageBox, setTheme, Theme, MSFluentWindow,
-                            NavigationAvatarWidget, qrouter, SubtitleLabel, setFont,FluentIcon,NavigationBarPushButton)
+                            NavigationAvatarWidget, qrouter, SubtitleLabel, setFont,FluentIcon,NavigationBarPushButton,MessageDialog)
 from DataWidget.DataInterface import DataInterface
 from LabelWidget.LabelInterface import LabelInterface
 from CheckWidget.CheckInterface import CheckInterface
 from GlobalData import gData
+
 
 class AoiWindow(MSFluentWindow):
     """ Main window """
@@ -56,8 +57,17 @@ class AoiWindow(MSFluentWindow):
         print("关闭窗口")
         # if self.checkInterface.client:
         #     self.checkInterface.client.stop()
-        if self.checkInterface.executor:
-            self.checkInterface.executor.stop()
+        
+        dlg=MessageBox("退出程序","确认是否关闭软件",self.window())
+        dlg.yesButton.setText("退出")
+        dlg.cancelButton.setText("取消")
+        if dlg.exec() == MessageBox.Accepted:
+            if self.checkInterface.executor:
+                self.checkInterface.executor.stop()
+            if self.dataInterface.watcher is not None:
+                self.dataInterface.watcher.stop()
+            super().closeEvent(event)
+        else:
+            event.ignore()
 
-        super().closeEvent(event)
 

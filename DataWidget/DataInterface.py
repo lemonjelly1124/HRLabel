@@ -179,7 +179,6 @@ class DataInterface(QWidget):
             labelDict=self.createCrackYaml(self.projectCard.projectID)      #key标签,value索引
 
 
-        print(labelDict)
         datasetIDs = []
         for row in range(self.projectCard.dataTable.rowCount()):
             item = self.projectCard.dataTable.item(row, 0)  # 获取第一列的item
@@ -241,7 +240,6 @@ class DataInterface(QWidget):
                     imgList[i].save(imagesSplitDir+imageName.split(".")[0]+"_"+str(i)+".jpg")
             else:
                 shutil.copy2(path,imagesDir+imageName)
-
                 labelStr,errorInfo=transform.transformYolo(imageObj.labels,imageObj.sizeW,imageObj.sizeH,labelDict)
                 with open(labelsDir+imageName.split(".")[0]+".txt", "w") as f:
                     f.write(labelStr)

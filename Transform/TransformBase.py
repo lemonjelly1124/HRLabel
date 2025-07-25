@@ -44,16 +44,31 @@ class TransformBase:
                     labelStr=labelStr+str(labelDict[labelObj["label_id"]])+" "+str(centerX)+" "+str(centerY)+" "+str(w)+" "+str(h)+"\n"
                 else:
                     errorInfo["error"]="label_id not found in labelDict"
+            # elif labelObj["type"]=="LabelPolygonItem":
+            #     polygonParts = labelObj["polygon"].split(",")
+            #     polygon = [QPointF(float(polygonParts[i]), float(polygonParts[i + 1])) for i in range(0, len(polygonParts), 2)]
+
+            #     polygonStr=""
+            #     for point in polygon:
+            #         polygonStr+=str(round(point.x()/width,6))+" "+str(round(point.y()/height,6))+" "
+            #     polygonStr=polygonStr[:-1]
+            #     if labelObj["label_id"] in labelDict.keys():
+            #         labelStr=labelStr+str(labelDict[labelObj["label_id"]])+" "+polygonStr+"\n"
+            #     else:
+            #         errorInfo["error"]="label_id not found in labelDict"
             elif labelObj["type"]=="LabelPolygonItem":
                 polygonParts = labelObj["polygon"].split(",")
-                polygon = [QPointF(float(polygonParts[i]), float(polygonParts[i + 1])) for i in range(0, len(polygonParts), 2)]
+                polygonlist = [QPointF(float(polygonParts[i]), float(polygonParts[i + 1])) for i in range(0, len(polygonParts), 2)]
+                polygonF=QPolygonF(polygonlist)
 
-                polygonStr=""
-                for point in polygon:
-                    polygonStr+=str(round(point.x()/width,6))+" "+str(round(point.y()/height,6))+" "
-                polygonStr=polygonStr[:-1]
+                boundingRect=polygonF.boundingRect()
+                centerX=round(boundingRect.center().x()/width,6)
+                centerY=round(boundingRect.center().y()/height,6)
+                w=round(boundingRect.width()/width,6)
+                h=round(boundingRect.height()/height,6)
+
                 if labelObj["label_id"] in labelDict.keys():
-                    labelStr=labelStr+str(labelDict[labelObj["label_id"]])+" "+polygonStr+"\n"
+                    labelStr=labelStr+str(labelDict[labelObj["label_id"]])+" "+str(centerX)+" "+str(centerY)+" "+str(w)+" "+str(h)+"\n"
                 else:
                     errorInfo["error"]="label_id not found in labelDict"
         

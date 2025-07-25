@@ -1,7 +1,7 @@
 
-from PySide6.QtCore import Qt,Signal,QRectF,QPointF,QTimer
+from PySide6.QtCore import Qt,Signal,QRectF,QPointF,QTimer,QPoint
 from PySide6.QtGui import QImage,QColor,QCursor
-from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget,QHBoxLayout,QSpacerItem,QSizePolicy,QListWidgetItem,QGraphicsItem,QGraphicsRectItem
+from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget,QHBoxLayout,QSpacerItem,QSizePolicy,QListWidgetItem,QGraphicsItem,QGraphicsRectItem,QGraphicsSceneMouseEvent
 import os,ast
 from hrfluentwidgets import (GraphicsView,GraphicsRectItem,GraphicsItemScene,GraphicsPolygonItem,GraphicsCaliperRectItem,GraphicsRotatedRectItem,GraphicsCaliperRotatedRectItem)
 from Database.BaseModel import *
@@ -89,8 +89,8 @@ class GraphicsCard(HeaderCardWidget):
         # rect=QRectF(center.x()-float(rectParts[2])*640/2,center.y()-float(rectParts[3])*640/2,float(rectParts[2])*640,float(rectParts[3])*640)
         # self.scene.addItem(GraphicsRectItem(rect))
 
-        # self.scene.setImage(QImage("D:\\AIProgram\\dataset\\模穴001\\images\\19-14-37-3737.bmp"))
-        # rectStr="0.265738 0.192293 0.038133 0.017093"
+        # self.scene.setImage(QImage("D:\AIProgram\dataset\测试\images\m2.bmp"))
+        # rectStr="0.813431 0.747829 0.015244 0.036949"
         # rectParts=rectStr.split()
         # center=QPointF(float(rectParts[0])*2448,float(rectParts[1])*2048)
         # rect=QRectF(center.x()-float(rectParts[2])*2448/2,center.y()-float(rectParts[3])*2048/2,float(rectParts[2])*2448,float(rectParts[3])*2048)
@@ -401,13 +401,24 @@ class LabelPolygonItem(GraphicsPolygonItem):
             self.hide()  # 删除时隐藏
             super().__del__()
     
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event:QGraphicsSceneMouseEvent):
         flags:QGraphicsItem.GraphicsItemFlag=self.flags()
         if event.button() == Qt.MouseButton.RightButton:
-            menu=LabelMenu(title="标签列表",dataset_id=self.datasetID)
-            menu.showMenu(QCursor.pos())  # 显示菜单在鼠标位置
-            menu.labelItemClicked.connect(self.setLabel)
-            menu.cancelled.connect(self.onMenuHide)  # 菜单隐藏时恢复编辑状态
+            if self.state==1 and self.polygon().size() > 2:
+                print("多边形编辑状态右键")
+                pol = self.polygon()
+                pol.removeLast()
+                self.setPolygon(pol)
+                del self.handleRects[len(pol)]
+                self.itemSizeChanged.emit(self.polygon())
+                self.handleIndex = len(self.polygon())-1
+                QCursor.setPos(QCursor.pos()+ QPoint(1, 0))
+
+            if self.state==2:
+                menu=LabelMenu(title="标签列表",dataset_id=self.datasetID)
+                menu.showMenu(QCursor.pos())  # 显示菜单在鼠标位置
+                menu.labelItemClicked.connect(self.setLabel)
+                menu.cancelled.connect(self.onMenuHide)  # 菜单隐藏时恢复编辑状态
         elif flags & QGraphicsItem.GraphicsItemFlag.ItemIsSelectable:
             super().mousePressEvent(event)
     """进入时禁用scene编辑"""
