@@ -108,7 +108,7 @@ class ProjectCard(SimpleCardWidget):
     def onDeleteProjectBtnClicked(self):
         dlg= MessageBox("删除项目","是否确认删除该项目?\n",self.window())
         dlg.yesButton.setText("删除")
-        dlg.noButton.setText("取消")
+        dlg.cancelButton.setText("取消")
         if dlg.exec() != MessageBox.Accepted:
             return
         affected_rows=DO.delete_project(id=self.projectID)
@@ -176,7 +176,7 @@ class ProjectCard(SimpleCardWidget):
 
         dlg= MessageBox("删除数据集","是否确认删除该数据集?\n\n数据集名称:"+datasetNmae+"数据集版本:"+datasetVersion+"\n\n同时将删除数据集的标注数据且不可恢复",parent=self.window())
         dlg.yesButton.setText("删除")
-        dlg.noButton.setText("取消")
+        dlg.cancelButton.setText("取消")
         if dlg.exec() != MessageBox.Accepted:
             return
         """点击删除数据集按钮"""

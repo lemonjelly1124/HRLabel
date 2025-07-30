@@ -74,27 +74,35 @@ class GraphicsCard(HeaderCardWidget):
 
         self.__connect__()
 
-        # self.scene.setImage(QImage("D:\\AIProgram\\dataset\\熔接痕\\images\\00-00-02-022_0.jpg"))
-        # polygonStr="0.396952 0.380509 0.423262 0.416685 0.466016 0.428744 0.485749 0.463824 0.52631 0.518636 0.53508 0.539465 0.584411 0.581123 0.618395 0.608529 0.604144 0.619491 0.576738 0.601951 0.550428 0.573449 0.520829 0.538369 0.496711 0.506578 0.469305 0.471497 0.455054 0.450669 0.452861 0.444091 0.424359 0.434225 0.395856 0.4123 0.381605 0.395856"
+        # self.scene.setImage(QImage("D:\AIProgram\dataset\测试_split\images\m2_1.jpg"))
+        # polygonStr="0.470302 0.425754 0.529698 0.425754 0.529698 0.574246 0.470302 0.574246"
         # polygonPoints=[]
         # for i in range(0,len(polygonStr.split()),2):
         #     point=QPointF(float(polygonStr.split()[i]),float(polygonStr.split()[i+1]))
         #     polygonPoints.append(QPointF(point.x()*640,point.y()*640))
-        # self.scene.addItem(GraphicsPolygonItem(polygonPoints))
 
-        # self.scene.setImage(QImage("D:\\AIProgram\\dataset\\项目1_split\\images\\1_1.jpg"))
-        # rectStr="0.5 0.5 0.161868 0.167976"
+        # polygonitem= LabelPolygonItem()
+        # polygonitem.setPolygon(polygonPoints)
+        # polygonitem.state=2  # 设置为已标注状态
+        # self.scene.addItem(polygonitem)
+
+        # self.scene.setImage(QImage("D:\AIProgram\dataset\测试_split\images\m2_0.jpg"))
+        # rectStr="0.5 0.5 0.148137 0.036464"
         # rectParts=rectStr.split()
         # center=QPointF(float(rectParts[0])*640,float(rectParts[1])*640)
         # rect=QRectF(center.x()-float(rectParts[2])*640/2,center.y()-float(rectParts[3])*640/2,float(rectParts[2])*640,float(rectParts[3])*640)
-        # self.scene.addItem(GraphicsRectItem(rect))
+        # rectitem=LabelRectItem(rect)
+        # rectitem.state=2
+        # self.scene.addItem(rectitem)
 
         # self.scene.setImage(QImage("D:\AIProgram\dataset\测试\images\m2.bmp"))
-        # rectStr="0.813431 0.747829 0.015244 0.036949"
+        # rectStr="0.5 0.5 0.148137 0.036464"
         # rectParts=rectStr.split()
         # center=QPointF(float(rectParts[0])*2448,float(rectParts[1])*2048)
         # rect=QRectF(center.x()-float(rectParts[2])*2448/2,center.y()-float(rectParts[3])*2048/2,float(rectParts[2])*2448,float(rectParts[3])*2048)
-        # self.scene.addItem(GraphicsRectItem(rect))
+        # rectitem=LabelRectItem(rect)
+        # rectitem.state=2
+        # self.scene.addItem(rectitem)
     
     def __connect__(self):
         self.zoomInBtn.clicked.connect(self.zoomIn)
@@ -293,7 +301,6 @@ class GraphicsCard(HeaderCardWidget):
             InfoBar.success("删除成功", "图像已删除", Qt.Horizontal, isClosable=True, duration=3000, position=InfoBarPosition.TOP, parent=self)
             # self.scene.setImage(None)
             self.onDeleteImage.emit(deleteID)
-
         
     def keyPressEvent(self, event):
         """ 处理键盘按键事件 """
@@ -331,7 +338,7 @@ class GraphicsCard(HeaderCardWidget):
                         isEditing=True
                         break
             if not isEditing:          
-                self.moveBtn.setChecked(self.moveBtn.isChecked() ^ True)  # 切换移动按钮状态
+                self.moveBtn.setChecked(self.moveBtn.isChecked()^True)  # 切换移动按钮状态
                 self.enableImageDrag()
         else:
             super().keyPressEvent(event)
@@ -394,7 +401,6 @@ class LabelPolygonItem(GraphicsPolygonItem):
         self.datasetID=None  # 数据集ID，用于获取标签列表
         self.handleSize=QPointF(6, 6)
         self.isdeleted=False  # 是否已删除
-
     
     def __del__(self):
         if not self.isdeleted:
@@ -405,7 +411,6 @@ class LabelPolygonItem(GraphicsPolygonItem):
         flags:QGraphicsItem.GraphicsItemFlag=self.flags()
         if event.button() == Qt.MouseButton.RightButton:
             if self.state==1 and self.polygon().size() > 2:
-                print("多边形编辑状态右键")
                 pol = self.polygon()
                 pol.removeLast()
                 self.setPolygon(pol)

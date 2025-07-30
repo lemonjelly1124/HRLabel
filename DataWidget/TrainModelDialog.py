@@ -22,7 +22,7 @@ class TrainModelDialog(MessageBoxBase):
         self.viewLayout.addLayout(self.gLayout)
 
         self.cmbModel=ComboBox()
-        self.cmbModel.addItems(["物体识别","语义分割"])
+        self.cmbModel.addItems(gData.weights)
 
         self.spnEpochs=SpinBox(self)
         self.spnBatchSize=SpinBox(self)

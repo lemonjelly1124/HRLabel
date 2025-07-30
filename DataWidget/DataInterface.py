@@ -122,15 +122,22 @@ class DataInterface(QWidget):
             gData.watcherConfig['epochs']=trainDlg.spnEpochs.value()
             gData.watcherConfig['batch_size']=trainDlg.spnBatchSize.value()
             gData.watcherConfig['workers']=trainDlg.spnWorkers.value()
-            gData.watcherConfig['model']=gData.models[trainDlg.cmbModel.currentIndex()]
-            gData.watcherConfig['weights']=gData.weights[trainDlg.cmbModel.currentIndex()]
+            gData.watcherConfig['weights']=trainDlg.cmbModel.currentText()
+
+            if "rtdetr" in gData.watcherConfig['weights']:
+                gData.watcherConfig['model']="rtdetr"
+            else:
+                gData.watcherConfig['model']="yolo"
+
             gData.saveJson()
 
             self.isTrainSplit=trainDlg.chkSplit.isChecked()
-            if(self.isTrainSplit):
-                gData.watcherConfig['weights']=gData.weights[2]
 
-            isError=self.prepareImageData()
+            isRect=True
+            if "seg" in gData.watcherConfig['weights']:
+                isRect=False
+
+            isError=self.prepareImageData(isRect)
             if isError:
                 return
             self.startTrain()
@@ -161,7 +168,10 @@ class DataInterface(QWidget):
         trainDlg.yesButton.setText("导出数据集")
         if trainDlg.exec() == MessageBox.Accepted:
             self.isTrainSplit=trainDlg.chkSplit.isChecked()
-            self.prepareImageData()
+            isRect=True
+            if "seg" in trainDlg.cmbModel.currentText():
+                isRect=False
+            self.prepareImageData(isRect)
 
     def onStopBtnClicked(self):
         """点击停止按钮"""
@@ -170,7 +180,7 @@ class DataInterface(QWidget):
             self.isTraining=False
             self.isInTraining()
 
-    def prepareImageData(self):
+    def  prepareImageData(self,isRect:bool):
         InfoBar.info("模型训练", "正在初始化数据集", Qt.Horizontal, isClosable=True, duration=10000, position=InfoBarPosition.TOP, parent=self.window())
 
         if self.isTrainSplit:
@@ -227,7 +237,7 @@ class DataInterface(QWidget):
             
             if self.isTrainSplit:
                 #写入标签数据
-                labelStrArr,errorInfo=transform.transformYoloSplit(imageObj.labels,gData.splitSize,labelDict)
+                labelStrArr,errorInfo=transform.transformYoloSplit(imageObj.labels,gData.splitSize,labelDict,isRect)
                 if isError==False and errorInfo.get("error","")!="":
                     isError=True
                     InfoBar.error("模型训练", "数据集 "+imageObj.dataset.name+" 数据错误:"+errorInfo["error"]+"\n请检查标注数据", Qt.Horizontal, isClosable=True, duration=120000, position=InfoBarPosition.TOP, parent=self.window()) 
@@ -240,7 +250,7 @@ class DataInterface(QWidget):
                     imgList[i].save(imagesSplitDir+imageName.split(".")[0]+"_"+str(i)+".jpg")
             else:
                 shutil.copy2(path,imagesDir+imageName)
-                labelStr,errorInfo=transform.transformYolo(imageObj.labels,imageObj.sizeW,imageObj.sizeH,labelDict)
+                labelStr,errorInfo=transform.transformYolo(imageObj.labels,imageObj.sizeW,imageObj.sizeH,labelDict,isRect)
                 with open(labelsDir+imageName.split(".")[0]+".txt", "w") as f:
                     f.write(labelStr)
                 if isError==False and errorInfo.get("error","")!="":
