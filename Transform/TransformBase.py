@@ -101,12 +101,19 @@ class TransformBase:
         imgList:list[QImage]=[]
         
         for labelObj in labelArr:
+            splitW= splitSize
+            splitH= splitSize
             if labelObj["type"]=="LabelRectItem" :
                 rectParts=labelObj["rect"].split(",")
                 rect = QRectF(float(rectParts[0]), float(rectParts[1]), float(rectParts[2]), float(rectParts[3]))
+
+                if rect.width()>splitW:
+                    splitW=rect.width()
+                if rect.height()>splitH:
+                    splitH=rect.height()
                 center=rect.center()
                 qimage=QImage(imagePath)
-                qimage=qimage.copy(center.x()-splitSize/2,center.y()-splitSize/2,splitSize,splitSize)
+                qimage=qimage.copy(center.x()-splitW/2,center.y()-splitH/2,splitW,splitH)
                 imgList.append(qimage)
             elif labelObj["type"]=="LabelPolygonItem":
                 polygonParts = labelObj["polygon"].split(",")
@@ -115,8 +122,13 @@ class TransformBase:
 
                 center=polygonF.boundingRect().center()
 
+                if polygonF.boundingRect().width()>splitW:
+                    splitW=polygonF.boundingRect().width()
+                if polygonF.boundingRect().height()>splitH:
+                    splitH=polygonF.boundingRect().height()
+
                 qimage=QImage(imagePath)
-                qimage=qimage.copy(center.x()-splitSize/2,center.y()-splitSize/2,splitSize,splitSize)
+                qimage=qimage.copy(center.x()-splitW/2,center.y()-splitH/2,splitW,splitH)
                 imgList.append(qimage)
             
         return imgList
@@ -126,7 +138,8 @@ class TransformBase:
         转换为分割图格式
         """
         errorInfo:dict={}
-
+        splitW= splitSize
+        splitH= splitSize
         labelStrArr:list[str]=[]
         labelArr=self.labelToDict(labelStr)
         for i,labelObj in enumerate(labelArr):
@@ -134,11 +147,16 @@ class TransformBase:
                 rectParts=labelObj["rect"].split(",")
                 rect = QRectF(float(rectParts[0]), float(rectParts[1]), float(rectParts[2]), float(rectParts[3]))
                 center=rect.center()
-                leftTop=QPointF(center.x()-splitSize/2,center.y()-splitSize/2)
-                rectStr=str(round((center.x()-leftTop.x())/splitSize,6))+" "+str(round((center.y()-leftTop.y())/splitSize,6))+" "+str(round(rect.width()/splitSize,6))+" "+str(round(rect.height()/splitSize,6))+"\n"
+                if rect.width()>splitW:
+                    splitW=rect.width()
+                if rect.height()>splitH:
+                    splitH=rect.height()
+                leftTop=QPointF(center.x()-splitW/2,center.y()-splitH/2)
+                rectStr=str(round((center.x()-leftTop.x())/splitW,6))+" "+str(round((center.y()-leftTop.y())/splitH,6))+" "+str(round(rect.width()/splitW,6))+" "+str(round(rect.height()/splitH,6))+"\n"
 
                 if labelObj["label_id"] in labelDict.keys():
                     labelStr=str(labelDict[labelObj["label_id"]])+" "+rectStr
+                    labelStr=labelStr.replace("-","")
                     labelStrArr.append(labelStr)
                 else:
                     errorInfo["error"]="label_id not found in labelDict"
@@ -147,15 +165,20 @@ class TransformBase:
                 rectParts=labelObj["rect"].split(",")
                 rect = QRectF(float(rectParts[0]), float(rectParts[1]), float(rectParts[2]), float(rectParts[3]))
                 center=rect.center()
-                leftTop=QPointF(center.x()-splitSize/2,center.y()-splitSize/2)
+                if rect.width()>splitW:
+                    splitW=rect.width()
+                if rect.height()>splitH:
+                    splitH=rect.height()
+                leftTop=QPointF(center.x()-splitW/2,center.y()-splitH/2)
                 polygonStr=""
-                polygonStr+=str(round((rect.left()-leftTop.x())/splitSize,6))+" "+str(round((rect.top()-leftTop.y())/splitSize,6))+" "
-                polygonStr+=str(round((rect.right()-leftTop.x())/splitSize,6))+" "+str(round((rect.top()-leftTop.y())/splitSize,6))+" "
-                polygonStr+=str(round((rect.right()-leftTop.x())/splitSize,6))+" "+str(round((rect.bottom()-leftTop.y())/splitSize,6))+" "
-                polygonStr+=str(round((rect.left()-leftTop.x())/splitSize,6))+" "+str(round((rect.bottom()-leftTop.y())/splitSize,6))+" "
+                polygonStr+=str(round((rect.left()-leftTop.x())/splitW,6))+" "+str(round((rect.top()-leftTop.y())/splitH,6))+" "
+                polygonStr+=str(round((rect.right()-leftTop.x())/splitW,6))+" "+str(round((rect.top()-leftTop.y())/splitH,6))+" "
+                polygonStr+=str(round((rect.right()-leftTop.x())/splitW,6))+" "+str(round((rect.bottom()-leftTop.y())/splitH,6))+" "
+                polygonStr+=str(round((rect.left()-leftTop.x())/splitW,6))+" "+str(round((rect.bottom()-leftTop.y())/splitH,6))+" "
                 polygonStr=polygonStr[:-1]
                 if labelObj["label_id"] in labelDict.keys():
                     labelStr=str(labelDict[labelObj["label_id"]])+" "+polygonStr+"\n"
+                    labelStr=labelStr.replace("-","")
                     labelStrArr.append(labelStr)
                 else:
                     errorInfo["error"]="label_id not found in labelDict"
@@ -168,12 +191,18 @@ class TransformBase:
 
                 boundingRect=polygonF.boundingRect()
                 center=boundingRect.center()
-                leftTop=QPointF(center.x()-splitSize/2,center.y()-splitSize/2)
+                if boundingRect.width()>splitW:
+                    splitW=boundingRect.width()
+                if boundingRect.height()>splitH:
+                    splitH=boundingRect.height()
 
-                rectStr=str(round((center.x()-leftTop.x())/splitSize,6))+" "+str(round((center.y()-leftTop.y())/splitSize,6))+" "+str(round(boundingRect.width()/splitSize,6))+" "+str(round(boundingRect.height()/splitSize,6))+"\n"
+                leftTop=QPointF(center.x()-splitW/2,center.y()-splitH/2)
+
+                rectStr=str(round((center.x()-leftTop.x())/splitW,6))+" "+str(round((center.y()-leftTop.y())/splitH,6))+" "+str(round(boundingRect.width()/splitW,6))+" "+str(round(boundingRect.height()/splitH,6))+"\n"
 
                 if labelObj["label_id"] in labelDict.keys():
                     labelStr=str(labelDict[labelObj["label_id"]])+" "+rectStr
+                    labelStr=labelStr.replace("-","")
                     labelStrArr.append(labelStr)
                 else:
                     errorInfo["error"]="label_id not found in labelDict"
@@ -182,17 +211,22 @@ class TransformBase:
                 polygonParts = labelObj["polygon"].split(",")
                 polygonlist = [QPointF(float(polygonParts[i]), float(polygonParts[i + 1])) for i in range(0, len(polygonParts), 2)]
                 polygonF=QPolygonF(polygonlist)
-
                 center=polygonF.boundingRect().center()
-                leftTop=QPointF(center.x()-splitSize/2,center.y()-splitSize/2)
+                if polygonF.boundingRect().width()>splitW:
+                    splitW=polygonF.boundingRect().width()
+                if polygonF.boundingRect().height()>splitH:
+                    splitH=polygonF.boundingRect().height()
+
+                leftTop=QPointF(center.x()-splitW/2,center.y()-splitH/2)
 
                 polygonStr=""
                 for point in polygonlist:
-                    polygonStr+=str(round((point.x()-leftTop.x())/splitSize,6))+" "+str(round((point.y()-leftTop.y())/splitSize,6))+" "
+                    polygonStr+=str(round((point.x()-leftTop.x())/splitW,6))+" "+str(round((point.y()-leftTop.y())/splitH,6))+" "
                 polygonStr=polygonStr[:-1]
 
                 if labelObj["label_id"] in labelDict.keys():
                     labelStr=str(labelDict[labelObj["label_id"]])+" "+polygonStr+"\n"
+                    labelStr=labelStr.replace("-","")
                     labelStrArr.append(labelStr)
                 else:
                     errorInfo["error"]="label_id not found in labelDict"

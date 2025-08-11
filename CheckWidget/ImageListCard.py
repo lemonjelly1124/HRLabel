@@ -69,7 +69,7 @@ class ImageListCard(HeaderCardWidget):
     
     def onImportBtnClicked(self):
         """ 点击导入按钮 """
-        fileNames, _ = QFileDialog.getOpenFileNames(self, "选择图片", "", "Images (*.png *.xpm *.jpg *.bmp)")
+        fileNames, _ = QFileDialog.getOpenFileNames(self, "选择图片", "", "Images (*.png *.xpm *.jpg *.bmp *.tif *.tiff *.jpeg)")
         if fileNames:
             if len(fileNames)>200:
                 InfoBar.warning("警告","一次最多导入200张图片",Qt.Horizontal,True,2500,InfoBarPosition.TOP,self.window())
@@ -86,7 +86,7 @@ class ImageListCard(HeaderCardWidget):
         
         if folder_path:
             # 支持的图片格式（可以根据需要扩展）
-            image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']
+            image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif']
             
             # 获取当前文件夹中的文件（不遍历子文件夹）
             image_paths = []
@@ -108,7 +108,7 @@ class ImageListCard(HeaderCardWidget):
         if self.imgPath=="":
             return
         fileName=os.path.basename(self.imgPath)
-        newPath=QFileDialog.getSaveFileName(self, "导出图片", fileName, "Images (*.png *.jpg *.bmp)")
+        newPath=QFileDialog.getSaveFileName(self, "导出图片", fileName, "Images (*.png *.jpg *.bmp *.tif *.jpeg *.tiff )")
         if newPath:
             shutil.copy(self.imgPath,newPath[0])
             InfoBar.success("保存图片","保存图片成功",Qt.Horizontal,True,2500,InfoBarPosition.TOP,self.window())

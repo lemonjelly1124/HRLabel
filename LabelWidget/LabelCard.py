@@ -56,6 +56,9 @@ class LabelCard(HeaderCardWidget):
 
     def onAddBtnClicked(self):
         """ 点击添加按钮 """
+        if self.datasetID is None or self.datasetID=="":
+            InfoBar.warning("添加标签","请先选择数据集",Qt.Horizontal,True,2500,InfoBarPosition.TOP,self.window())
+            return
         label=LabelData()
         label.name = "新标签"
         label.color = "#36e1ff"
@@ -108,6 +111,8 @@ class LabelItem(QWidget):
         self.colorBtn=DropDownColorPalette(self)
         self.lblName= BodyLabel(name)
         self.lineName = EnterLineEdit(self)
+        self.lblCount=BodyLabel("0")
+
         self.editBtn=TransparentToolButton(FluentIcon.EDIT)
         self.deleteBtn=TransparentToolButton(FluentIcon.DELETE)
         self.confirmBtn=TransparentToolButton(FluentIcon.ACCEPT_MEDIUM)
@@ -126,6 +131,7 @@ class LabelItem(QWidget):
         self.hLayout.addWidget(self.colorBtn)
         self.hLayout.addWidget(self.lblName)
         self.hLayout.addWidget(self.lineName)
+        self.hLayout.addWidget(self.lblCount)
         self.hLayout.addWidget(self.editBtn)
         self.hLayout.addWidget(self.deleteBtn)
         self.hLayout.addWidget(self.confirmBtn)
@@ -142,6 +148,8 @@ class LabelItem(QWidget):
         self.lblName.setVisible(not state)
         self.editBtn.setVisible(not state)
         self.deleteBtn.setVisible(not state)
+        self.lblCount.setVisible(not state)
+
 
     def onEditBtnClicked(self):
         """ 点击编辑按钮 """

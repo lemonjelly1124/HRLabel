@@ -9,6 +9,7 @@ from qfluentwidgets import ToggleButton,HeaderCardWidget,TransparentTogglePushBu
 from qfluentwidgets import FluentIcon as FIF
 from HRVision.utils.tools import delay_execute
 class CheckCard(HeaderCardWidget):
+    graphicsItemClicked = Signal(object)  # Signal to emit when a graphics item is clicked
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("CheckCard")
@@ -24,7 +25,7 @@ class CheckCard(HeaderCardWidget):
         self.graphicsView=GraphicsView(self)
         self.graphicsScene=GraphicsItemScene(self.graphicsView)
         self.graphicsView.setScene(self.graphicsScene)
-        self.graphicsView.setDragMode(GraphicsView.ScrollHandDrag)
+        # self.graphicsView.setDragMode(GraphicsView.ScrollHandDrag)
         
         self.outlineLbl=BodyLabel("显示轮廓")
         self.outlineBtn=SwitchButton()
@@ -56,10 +57,25 @@ class CheckCard(HeaderCardWidget):
         self.rightBtn.clicked.connect(self.onRightBtnClicked)
         self.outlineBtn.checkedChanged.connect(self.onOutlineBtnClicked)
 
-    def setGraphicsTextItem(self,w,h,gray,score,ngArr,isNg):
+    def setGraphicsTextItem(self,resObj:dict,className:str):
+        for item in self.graphicsScene.items():
+            if isinstance(item, QGraphicsTextItem):
+                self.graphicsScene.removeItem(item)
+        # print(resObj)
+        if resObj=={} or resObj is None:    
+            return
+        
+        w=resObj.get('realW', 0)
+        h=resObj.get('realH', 0)
+        gray=resObj.get('gray', 0)
+        score=resObj.get('score', 0)
+        ngArr= resObj.get('ngArr', [])
+        isNG= resObj.get('isNG', False)
+
         sceneH= self.graphicsScene.height()
         size=sceneH/750
         self.ngItem=QGraphicsTextItem("NG")
+        self.nameItem=QGraphicsTextItem("标签名称:")
         self.ngArrItem= QGraphicsTextItem("")
         self.wItem= QGraphicsTextItem("宽度:")
         self.hItem= QGraphicsTextItem("长度:")
@@ -69,30 +85,38 @@ class CheckCard(HeaderCardWidget):
         self.ngItem.setFont(QFont("Arial", size*20, QFont.Weight.Bold))
         self.ngItem.setPos(size*10, size*10)
 
+        self.nameItem.setFont(QFont("Arial", size*16, QFont.Weight.Bold))
+        self.nameItem.setPos(size*10, size*10+size*30)
+
         self.ngArrItem.setFont(QFont("Arial", size*16, QFont.Weight.Bold))
-        self.ngArrItem.setPos(size*10, size*40)
+        self.ngArrItem.setPos(size*10, size*70)
         self.wItem.setFont(QFont("Arial", size*16, QFont.Weight.Bold))
-        self.wItem.setPos(size*10, size*70)
+        self.wItem.setPos(size*10, size*100)
         self.hItem.setFont(QFont("Arial", size*16, QFont.Weight.Bold))
-        self.hItem.setPos(size*10, size*100)
+        self.hItem.setPos(size*10, size*130)
         self.grayItem.setFont(QFont("Arial", size*16, QFont.Weight.Bold))
-        self.grayItem.setPos(size*10, size*130)
+        self.grayItem.setPos(size*10, size*160)
         self.scoreItem.setFont(QFont("Arial", size*16, QFont.Weight.Bold))
-        self.scoreItem.setPos(size*10, size*160)
+        self.scoreItem.setPos(size*10, size*190)
 
         self.graphicsScene.addItem(self.ngItem)
+        self.graphicsScene.addItem(self.nameItem)
         self.graphicsScene.addItem(self.ngArrItem)
         self.graphicsScene.addItem(self.wItem)
         self.graphicsScene.addItem(self.hItem)
         self.graphicsScene.addItem(self.grayItem)
         self.graphicsScene.addItem(self.scoreItem)
 
-        if isNg:
+        if isNG:
             self.ngItem.setPlainText("NG")
             self.ngItem.setDefaultTextColor(QColor("#ff0000"))
         else:
             self.ngItem.setPlainText("OK")
             self.ngItem.setDefaultTextColor(QColor("#00ff00"))
+
+        if className is not None:
+            self.nameItem.setPlainText(f"标签名称: {className}")
+            self.nameItem.setDefaultTextColor(QColor("#36e1ff"))
         
         if ngArr is not None:
             ngStr=''
@@ -161,7 +185,12 @@ class CheckCard(HeaderCardWidget):
                 rectItem.setRect(QRectF(rect['x'],rect['y'],rect['width'],rect['height']))
                 rectItem.setScore(item["classScore"])
                 rectItem.className=item["className"]
+                rectItem.classType=item.get("classType","")
+                rectItem.resObj=item.get("data",{})
+                if rectItem.resObj.get("isNG",False):
+                    rectItem.penColor=QColor("#ff0000")
                 self.graphicsScene.addItem(rectItem)
+                rectItem.itemClicked.connect(self.graphicsItemClicked.emit)
                 rectItem.setVisible(self.outlineBtn.isChecked())
             elif item['mask'] is not None:
                 rect=item["rect"]
@@ -172,11 +201,17 @@ class CheckCard(HeaderCardWidget):
                     points.append(QPointF(point[0],point[1]))
                 polygon.setPolygon(points)
                 polygon.setScore(item["classScore"])
-                self.className=item["className"]
+                polygon.className=item["className"]
+                polygon.classType=item.get("classType","")
+                polygon.resObj=item.get("data",{})
+                if polygon.resObj.get("isNG",False):
+                    polygon.penColor=QColor("#ff0000")
                 self.graphicsScene.addItem(polygon)
+                polygon.itemClicked.connect(self.graphicsItemClicked.emit)
                 polygon.setVisible(self.outlineBtn.isChecked())
     
 class ScoreRectItem(GraphicsRectItem):
+    itemClicked = Signal(object)
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
@@ -185,12 +220,16 @@ class ScoreRectItem(GraphicsRectItem):
         self.setAcceptHoverEvents(False)
         self.score=0
         self.className=""
+        self.classType=""
+        self.resObj={}
 
     def mousePressEvent(self, event):
+        self.itemClicked.emit(self)
         pass
 
     def setScore(self,score):
         self.score=score
+    
     
     def paint(self, painter:QPainter, option, widget=None):
         painter.save()
@@ -222,6 +261,7 @@ class ScoreRectItem(GraphicsRectItem):
         painter.restore()
 
 class ScorePolygonItem(GraphicsPolygonItem):
+    itemClicked = Signal(object)  # Signal to emit when the item is clicked
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
@@ -232,8 +272,12 @@ class ScorePolygonItem(GraphicsPolygonItem):
 
         self.boundRect=QRectF()
         self.className=""
+        self.classType=""
+        self.resObj={}
+        self.penColor=QColor("#00ff00")  # Default color for the polygon
 
     def mousePressEvent(self, event):
+        self.itemClicked.emit(self)
         pass
 
     def setScore(self,score):

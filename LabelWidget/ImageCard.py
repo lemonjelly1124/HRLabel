@@ -129,18 +129,17 @@ class ImageCard(HeaderCardWidget):
         """ 校验标签字符串 """
         status = None
         if labelStr=="[]":
-            status = InfoBarIcon.INFORMATION
+            status = InfoBarIcon.INFORMATION    #没有框
         elif labelStr is None or labelStr=="":
-            status = InfoBarIcon.WARNING
+            status = InfoBarIcon.WARNING        #未标注
         else:
             status = InfoBarIcon.SUCCESS
             if labelIDArr is not None:
                 itemArr=ast.literal_eval(labelStr)
                 for item in itemArr:
                     labelID = item.get("label_id", None)
-                    # print(f"labelID:{labelID},labelIDArr:{labelIDArr}")
                     if labelID is None or labelID not in labelIDArr:
-                        status = InfoBarIcon.ERROR
+                        status = InfoBarIcon.ERROR  #标签ID不存在
                         break
         return status
     

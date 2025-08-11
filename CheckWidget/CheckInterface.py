@@ -5,7 +5,7 @@ from qfluentwidgets import (PushButton,PrimaryPushButton,FluentIcon,LineEdit,Too
                             InfoBar,InfoBarPosition,MessageBox)
 from Database.DataOperate import DataOperate as DO
 from Database.BaseModel import *
-from .CheckCard import CheckCard
+from .CheckCard import CheckCard,ScorePolygonItem
 from .ParameterCard import ParameterCard
 from .ImageListCard import ImageListCard
 from HRVision.Controller.Process import Executor,Client,ProcessSocket
@@ -45,6 +45,8 @@ class CheckInterface(QWidget):
         self.vLeftLayout.addWidget(self.imageListCard)
         self.vRightLayout.addWidget(self.parameterCard)
         self.vRightLayout.addWidget(self.measureWidget)
+        self.vRightLayout.setStretch(0, 1)
+        self.vRightLayout.setStretch(1, 2)
 
         self.hLayout.addLayout(self.vLeftLayout)
         self.hLayout.addLayout(self.vRightLayout)
@@ -56,6 +58,7 @@ class CheckInterface(QWidget):
         self.parameterCard.stopBtn.clicked.connect(self.onStopBtnClicked)
         self.checkCard.leftBtn.clicked.connect(self.imageListCard.preImage)
         self.checkCard.rightBtn.clicked.connect(self.imageListCard.nextImage)
+        self.checkCard.graphicsItemClicked.connect(self.onItemClicked)
 
 
     def onStartBtnClicked(self):
@@ -112,7 +115,9 @@ class CheckInterface(QWidget):
             success = self.client.execute(process_socket, timeOut=1000)
 
             if success:
-                self.checkCard.setResult(process_socket.outputJson['result'])
+                checkedArr=self.measureWidget.CheckResult(image,process_socket.outputJson['result'])
+                # print(f"检测结果: {checkedArr}")
+                self.checkCard.setResult(checkedArr)
                 
             else:
                 InfoBar.error("模型测试","模型计算超时",Qt.Horizontal,True,2500,InfoBarPosition.TOP,self.window())
@@ -121,10 +126,10 @@ class CheckInterface(QWidget):
         finally:
             pass
         
-        if self.measureWidget.ccd3Switch.isChecked():
-            w,h,gray,score,ngArr,isNg= self.measureWidget.CCD3Measure(image, process_socket.outputJson['result'])
-            print(f"宽度: {w}, 长度: {h}, 灰度: {gray}, 分数: {score}, NG项: {ngArr}, 是否NG: {isNg}")
-            self.checkCard.setGraphicsTextItem(w, h, gray, score, ngArr, isNg)
+
+    def onItemClicked(self, item:ScorePolygonItem):
+        """ Handle item click event in the image list """
+        self.checkCard.setGraphicsTextItem(item.resObj,item.className)
 
 
     

@@ -41,16 +41,14 @@ class AoiWindow(MSFluentWindow):
     def __initConnect__(self):
         """初始化连接"""
         if not gData.isDebug:
-            self.checkBtn.clicked.connect(self.onCheckBtnClicked)
+            pass
 
 
     def onLabelDatasetBtnClicked(self, dataset: int):
         self.stackedWidget.setCurrentIndex(1)
         self.labelInterface.setDataset(dataset)
 
-    def onCheckBtnClicked(self):
-        """校验按钮点击事件"""
-        self.checkInterface.measureWidget.setMeasureData()
+
 
     def closeEvent(self, event):
         """重写关闭事件"""
