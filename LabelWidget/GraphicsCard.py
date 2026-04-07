@@ -74,35 +74,7 @@ class GraphicsCard(HeaderCardWidget):
 
         self.__connect__()
 
-        # self.scene.setImage(QImage("D:\AIProgram\dataset\测试_split\images\m2_1.jpg"))
-        # polygonStr="0.470302 0.425754 0.529698 0.425754 0.529698 0.574246 0.470302 0.574246"
-        # polygonPoints=[]
-        # for i in range(0,len(polygonStr.split()),2):
-        #     point=QPointF(float(polygonStr.split()[i]),float(polygonStr.split()[i+1]))
-        #     polygonPoints.append(QPointF(point.x()*640,point.y()*640))
 
-        # polygonitem= LabelPolygonItem()
-        # polygonitem.setPolygon(polygonPoints)
-        # polygonitem.state=2  # 设置为已标注状态
-        # self.scene.addItem(polygonitem)
-
-        # self.scene.setImage(QImage("D:\AIProgram\dataset\测试_split\images\m2_0.jpg"))
-        # rectStr="0.5 0.5 0.148137 0.036464"
-        # rectParts=rectStr.split()
-        # center=QPointF(float(rectParts[0])*640,float(rectParts[1])*640)
-        # rect=QRectF(center.x()-float(rectParts[2])*640/2,center.y()-float(rectParts[3])*640/2,float(rectParts[2])*640,float(rectParts[3])*640)
-        # rectitem=LabelRectItem(rect)
-        # rectitem.state=2
-        # self.scene.addItem(rectitem)
-
-        # self.scene.setImage(QImage("D:\AIProgram\dataset\测试\images\m2.bmp"))
-        # rectStr="0.5 0.5 0.148137 0.036464"
-        # rectParts=rectStr.split()
-        # center=QPointF(float(rectParts[0])*2448,float(rectParts[1])*2048)
-        # rect=QRectF(center.x()-float(rectParts[2])*2448/2,center.y()-float(rectParts[3])*2048/2,float(rectParts[2])*2448,float(rectParts[3])*2048)
-        # rectitem=LabelRectItem(rect)
-        # rectitem.state=2
-        # self.scene.addItem(rectitem)
     
     def __connect__(self):
         self.zoomInBtn.clicked.connect(self.zoomIn)

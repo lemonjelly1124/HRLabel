@@ -88,6 +88,25 @@ class GlobalData:
                 self.models=data.get('models',self.models)
                 self.weights=data.get('weights',self.weights)
                 self.isDebug=data.get('isDebug',False)
+            print(self.url)
+            print(self.args)
+            print(self.args1)
+            print(self.env)    
+    #     self.setAIProgramPath()
+
+    # def setAIProgramPath(self):
+    #     if os.path.exists('aiprogram.json'):
+    #         with open('aiprogram.json','r') as f:
+    #             data=json.load(f)
+    #             path=data.get('path','')
+    #             if path:
+    #                 self.datasetPath=path+'/dataset'
+    #                 self.errorLogDir=path+'/errorlog'
+    #                 self.trainDir=path+'/train'
+    #                 self.url = path+'\AiDetect.exe'
+    #                 self.args = [path+'\AITest.py', "/ip", self.ip, '/port', str(self.port), '/display','True','/weights','*weights','/model','rtdetr']
+    #                 self.args1 = [path+'\AIRegionTest.py', "/ip", self.ip, '/port', str(self.port), '/display','True','/weights','*weights','/model','yolo','/weights1','*weights1','/model1','rtdetr']
+    #                 self.env = path
 
 gData=GlobalData()
 transform= TransformBase()

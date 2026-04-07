@@ -247,7 +247,7 @@ class DataInterface(QWidget):
                 #写入裁切图片
                 imgList=transform.splitImage(path,imageObj.labels,gData.splitSize)
                 for i in range(len(imgList)):
-                    imgList[i].save(imagesSplitDir+imageName.split(".")[0]+"_"+str(i)+".jpg")
+                    imgList[i].save(imagesSplitDir+imageName.split(".")[0]+"_"+str(i)+".bmp")
             else:
                 shutil.copy2(path,imagesDir+imageName)
                 labelStr,errorInfo=transform.transformYolo(imageObj.labels,imageObj.sizeW,imageObj.sizeH,labelDict,isRect)
@@ -272,11 +272,13 @@ class DataInterface(QWidget):
         else:
             yamlPath=gData.datasetPath+'/'+self.projectCard.titleLbl.text()+"_split.yaml"
 
+        if not os.path.exists(yamlPath):
+            os.makedirs(os.path.dirname(yamlPath))
+
         file=QFile(yamlPath)
         file.open(QFile.WriteOnly)
         out=QTextStream(file)
 
-        
         if not isSplit:
             out<<"path: "+gData.datasetPath+'/'+self.projectCard.titleLbl.text()+"\n"
         else:

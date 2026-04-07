@@ -6,6 +6,8 @@ from Database.BaseModel import *
 from Database.DataOperate import DataOperate as DO
 from hrfluentwidgets import DropDownColorPalette
 from GlobalData import gData
+import json
+import ast
 class LabelCard(HeaderCardWidget):
     onLabelColorChanged = Signal(int,QColor)
 
@@ -39,14 +41,25 @@ class LabelCard(HeaderCardWidget):
         dataset:Dataset = Dataset.get(Dataset.id == datasetID)
         project:Project=dataset.project
 
+        images:list[ImageData]=DO.query_image(dataset_id=datasetID)
+        labelCountDict={}
+        for image in images:
+            itemArr=ast.literal_eval(image.labels)
+            for labeldict in itemArr:
+                if labeldict['label_id'] in labelCountDict:
+                    labelCountDict[labeldict['label_id']]+=1
+                else:
+                    labelCountDict[labeldict['label_id']]=1
+
         labels:list[LabelData] = DO.query_label(project_id=project.id)
         for label in labels:
-            self.addLabelItem(label.id, label.name, QColor(label.color))
+            self.addLabelItem(label.id, label.name, QColor(label.color),labelCountDict[label.id])
 
-    def addLabelItem(self,lblID:str,lblName:str,color: QColor):
+    def addLabelItem(self,lblID:str,lblName:str,color: QColor,count:int=0):
         """ 添加一个新的LabelItem """
         listItem = QListWidgetItem(self.labelList)
         lblItem = LabelItem(lblID,lblName,color)
+        lblItem.setCount(count)
         listItem.setSizeHint(lblItem.sizeHint())
         lblItem.onColorChanged.connect(self.onLabelColorChanged)
         lblItem.onDeleteClicked.connect(self.onDeleteBtnClicked)
@@ -181,6 +194,10 @@ class LabelItem(QWidget):
         self.colorBtn.colorChanged.connect(self.onColorChangedSlot)
         self.deleteBtn.clicked.connect(self.onDeleteBtnClicked)
         self.lineName.enterPressed.connect(self.onConfirmBtnClicked)
+    
+    def setCount(self,count:int):
+        """ 设置标签数量 """
+        self.lblCount.setText(str(count))
 
 class EnterLineEdit(LineEdit):
     """ Custom LineEdit that emits a signal on Enter key press """

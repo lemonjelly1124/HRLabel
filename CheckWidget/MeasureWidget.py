@@ -87,7 +87,7 @@ class MeasureWidget(HeaderCardWidget):
     
     def onYAMLBtnClicked(self):
         """点击选择YAML文件"""
-        fileName, _ = QFileDialog.getOpenFileName(self, "选择YAML文件", "D:\AIProgram\dataset", "YAML Files (*.yaml *.yml)")
+        fileName, _ = QFileDialog.getOpenFileName(self, "选择YAML文件", "", "YAML Files (*.yaml *.yml)")
         if fileName:
             labelNames = []
             with open(fileName, 'r', encoding='utf-8') as file:
